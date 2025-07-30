@@ -1,0 +1,61 @@
+# requirements.txt
+
+# Librairies principales
+streamlit>=1.22.0
+langchain>=0.0.267
+chromadb>=0.4.6
+sentence-transformers>=2.2.2
+pydantic>=2.0.3
+python-dotenv>=1.0.0
+
+# Pour le traitement de documents
+PyMuPDF>=1.22.0
+pandas>=2.0.0
+numpy>=1.24.0
+
+# API et serveur
+fastapi>=0.103.0
+uvicorn>=0.23.2
+pydantic>=2.3.0
+
+# Base de données vectorielle
+chromadb>=0.4.18
+
+# LLMs et embeddings
+ollama>=0.1.5
+mistralai>=0.0.7  # Optionnel, si vous utilisez Mistral AI
+
+# Traitement de documents
+docling>=0.5.0
+transformers>=4.32.0
+pdfplumber>=0.10.2
+PyMuPDF>=1.22.5  # Pour fitz
+Pillow>=10.0.0
+
+# Utilitaires
+pandas>=2.1.0
+numpy>=1.24.0
+scikit-learn>=1.3.0
+pytest>=7.4.0
+python-multipart>=0.0.6  # Pour FastAPI form data
+python-dotenv>=1.0.0  # Pour la gestion des variables d'environnement
+
+# Optimisation des performances
+joblib>=1.3.0  # Pour la parallélisation optimisée
+psutil>=5.9.0  # Pour le monitoring des performances
+
+# Pour les tests
+httpx>=0.24.1
+pytest-asyncio>=0.21.1
+
+# Pour le module de résumé réglementaire
+jinja2>=3.1.0
+weasyprint>=59.0
+python-dateutil>=2.8.0
+
+# Pour l'upload et export de fichiers
+reportlab>=4.0.0  # Génération PDF
+python-docx>=1.1.0  # Génération Word documents
+python-docx-template>=0.20.0  # Templates Word avec JSON
+python-magic>=0.4.27  # Validation de type de fichier par contenu
+aiofiles>=23.2.0  # Async file handling

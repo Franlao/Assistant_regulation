@@ -1,0 +1,111 @@
+{
+  "app_name": "Assistant Réglementaire Automobile",
+  "version": "2.0.0",
+  "description": "Assistant IA spécialisé dans les réglementations automobiles UN/ECE",
+  "llm": {
+    "available_providers": [
+      "ollama",
+      "mistral"
+    ],
+    "default_provider": "mistral",
+    "ollama_models": [
+      "llama3.2",
+      "mistral",
+      "llama3.2:1b",
+      "granite3.1-moe:3b"
+    ],
+    "mistral_models": [
+      "mistral-medium",
+      "mistral-small",
+      "mistral-large-latest",
+      "open-mixtral-8x7b"
+    ],
+    "default_ollama_model": "llama3.2",
+    "default_mistral_model": "mistral-medium",
+    "temperature": 0.3,
+    "max_tokens": 1024,
+    "timeout": 300
+  },
+  "memory": {
+    "enabled": true,
+    "window_size": 7,
+    "max_turns_before_summary": 10,
+    "summary_max_words": 70,
+    "memory_dir": ".conversation_memory",
+    "session_timeout_hours": 24
+  },
+  "rag": {
+    "enable_verification": true,
+    "use_images": true,
+    "use_tables": true,
+    "default_top_k": 10,
+    "confidence_threshold": 0.7,
+    "force_rag_keywords": [
+      "R046",
+      "R107",
+      "ECE",
+      "réglementation automobile",
+      "norme",
+      "directive"
+    ],
+    "use_joblib_cache": true,
+    "cache_dir": "./joblib_cache"
+  },
+  "ui": {
+    "available_languages": [
+      "fr",
+      "en"
+    ],
+    "default_language": "fr",
+    "available_themes": [
+      "light",
+      "dark"
+    ],
+    "default_theme": "light",
+    "max_image_height": 300,
+    "image_sizes": {
+      "small": 150,
+      "medium": 250,
+      "large": 350
+    },
+    "max_sources_display": 50,
+    "max_images_per_response": 10
+  },
+  "database": {
+    "text_db_path": "data/vectorstores/text_chunks",
+    "image_db_path": "data/vectorstores/image_chunks",
+    "table_db_path": "data/vectorstores/table_chunks",
+    "similarity_threshold": 0.7,
+    "max_chunk_size": 1000,
+    "chunk_overlap": 200
+  },
+  "logging": {
+    "level": "INFO",
+    "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    "file_path": "logs/assistant.log",
+    "max_file_size_mb": 10,
+    "backup_count": 5,
+    "console_output": true
+  },
+  "security": {
+    "max_query_length": 1000,
+    "rate_limit_per_minute": 60,
+    "allowed_file_types": [
+      ".pdf",
+      ".txt",
+      ".docx",
+      ".png",
+      ".jpg",
+      ".jpeg"
+    ],
+    "max_file_size_mb": 50
+  },
+  "jina": {
+    "api_key": null,
+    "default_model": "jina-reranker-m0",
+    "api_url": "https://api.jina.ai/v1/rerank"
+  },
+  "assets_dir": "assets",
+  "data_dir": "data",
+  "temp_dir": "temp"
+}
