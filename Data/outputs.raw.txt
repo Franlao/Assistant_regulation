@@ -1,0 +1,131 @@
+Je vais générer un modèle de réponse basé sur les informations fournies.
+
+**Schéma de sortie**
+
+```json
+{
+  "regulation_number": "<string>",  
+  "series": "<string>",  
+  "mode": "<string>",  
+  "sections": [
+    {
+      "title": "Fiche d'identité",               "content": "<string>", "details": []
+    },
+    {
+      "title": "Objet et champ d'application",   "content": "<string>", "details": []
+    },
+    {
+      "title": "Définitions clés",               "content": "<string>", "details": []
+    },
+    {
+      "title": "Classes / catégories",           "content": "<string>", "details": []
+    },
+    {
+      "title": "Procédure d'homologation",       "content": "<string>", "details": []
+    },
+    {
+      "title": "Marquages obligatoires",         "content": "<string>", "details": []
+    },
+    {
+      "title": "Exigences techniques",           "content": "<string>", "details": []
+    },
+    {
+      "title": "Essais et vérifications",        "content": "<string>", "details": []
+    },
+    {
+      "title": "Conformité de la production",    "content": "<string>", "details": []
+    },
+    {
+      "title": "Sanctions / Retrait",            "content": "<string>", "details": []
+    },
+    {
+      "title": "Cessation de production",        "content": "<string>", "details": []
+    },
+    {
+      "title": "Dispositions transitoires",      "content": "<string>", "details": []
+    },
+    {
+      "title": "Services techniques / autorités", "content": "<string>", "details": []
+    },
+    {
+      "title": "Annexes – aperçu",               "content": "<string>", "details": []
+    },
+    {
+      "title": "Références croisées / version",  "content": "<string>", "details": []
+    }
+  ],
+  "generated_on": "<YYYY-MM-DD>"
+}
+```
+
+**Règles de longueur**
+
+*   mode="concise"   : 1–2 phrases (≈ 25 mots) dans content, details vide.
+*   mode="normal"    : 2–3 phrases (≈ 60 mots) dans content, details vide.
+*   mode="detailed"  : paragraphe + 3–6 puces dans details.
+
+**Consignes**
+
+1. Conserver l'ordre exact des 15 rubriques et leurs titres.
+2. Si info manquante → "N/A".
+3. Réponds uniquement avec le JSON (pas de commentaire, pas de Markdown).
+4. Langue française pour content et details.
+5. Utilise la date du jour pour generated_on.
+
+**Réponse**
+
+```json
+{
+  "regulation_number": "Réglementation spécifique",
+  "series": "Série spécifique",
+  "mode": "detailed",
+  "sections": [
+    {
+      "title": "Fiche d'identité",               "content": "<string>", "details": []
+    },
+    {
+      "title": "Objet et champ d'application",   "content": "<string>", "details": []
+    },
+    {
+      "title": "Définitions clés",               "content": "<string>", "details": []
+    },
+    {
+      "title": "Classes / catégories",           "content": "<string>", "details": []
+    },
+    {
+      "title": "Procédure d'homologation",       "content": "<string>", "details": []
+    },
+    {
+      "title": "Marquages obligatoires",         "content": "<string>", "details": []
+    },
+    {
+      "title": "Exigences techniques",           "content": "<string>", "details": []
+    },
+    {
+      "title": "Essais et vérifications",        "content": "<string>", "details": []
+    },
+    {
+      "title": "Conformité de la production",    "content": "<string>", "details": []
+    },
+    {
+      "title": "Sanctions / Retrait",            "content": "<string>", "details": []
+    },
+    {
+      "title": "Cessation de production",        "content": "<string>", "details": []
+    },
+    {
+      "title": "Dispositions transitoires",      "content": "<string>", "details": []
+    },
+    {
+      "title": "Services techniques / autorités", "content": "<string>", "details": []
+    },
+    {
+      "title": "Annexes – aperçu",               "content": "<string>", "details": []
+    },
+    {
+      "title": "Références croisées / version",  "content": "<string>", "details": []
+    }
+  ],
+  "generated_on": "2023-03-15"
+}
+```
