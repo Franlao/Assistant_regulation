@@ -70,8 +70,9 @@ class BaseRetriever:
         
         if mistral_api_key and MISTRAL_EMBEDDING_AVAILABLE:
             try:
+                # L'API key doit être définie comme variable d'environnement MISTRAL_API_KEY
+                os.environ["MISTRAL_API_KEY"] = mistral_api_key
                 self.mistral_ef = MistralEmbeddingFunction(
-                    api_key=mistral_api_key,
                     model="mistral-embed"
                 )
                 self.embedding_provider = "mistral"
