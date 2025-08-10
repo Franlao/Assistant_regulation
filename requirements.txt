@@ -1,61 +1,75 @@
-# requirements.txt
+# Requirements for Assistant Réglementaire Automobile
+# Generated from current virtual environment - optimized for production
 
-# Librairies principales
-streamlit>=1.22.0
-langchain>=0.0.267
-chromadb>=0.4.6
-sentence-transformers>=2.2.2
-pydantic>=2.0.3
-python-dotenv>=1.0.0
+# === Core Application Framework ===
+streamlit==1.47.1
+fastapi==0.103.0
+uvicorn==0.35.0
 
-# Pour le traitement de documents
-PyMuPDF>=1.22.0
-pandas>=2.0.0
-numpy>=1.24.0
+# === AI/ML Core Libraries ===
+# Text processing and chunking
+chonkie==1.1.1
+sentence-transformers==5.0.0
+transformers==4.54.1
+torch==2.7.1
+huggingface-hub==0.34.3
 
-# API et serveur
-fastapi>=0.103.0
-uvicorn>=0.23.2
-pydantic>=2.3.0
+# LLM Providers
+ollama==0.5.1
+mistralai==1.9.3
 
-# Base de données vectorielle
-chromadb>=0.4.18
+# LangChain ecosystem
+langchain-core==0.3.72
+langsmith==0.4.8
 
-# LLMs et embeddings
-ollama>=0.1.5
-mistralai>=0.0.7  # Optionnel, si vous utilisez Mistral AI
+# === Vector Database ===
+chromadb==1.0.15
 
-# Traitement de documents
-docling>=0.5.0
-transformers>=4.32.0
-pdfplumber>=0.10.2
-PyMuPDF>=1.22.5  # Pour fitz
-Pillow>=10.0.0
+# === Document Processing ===
+PyMuPDF==1.26.3
+pdfplumber==0.11.7
+pdfminer.six==20250506
+pillow==11.3.0
 
-# Utilitaires
-pandas>=2.1.0
-numpy>=1.24.0
-scikit-learn>=1.3.0
-pytest>=7.4.0
-python-multipart>=0.0.6  # Pour FastAPI form data
-python-dotenv>=1.0.0  # Pour la gestion des variables d'environnement
+# === Data Processing ===
+pandas==2.3.1
+numpy==2.2.6
+scikit-learn==1.7.1
 
-# Optimisation des performances
-joblib>=1.3.0  # Pour la parallélisation optimisée
-psutil>=5.9.0  # Pour le monitoring des performances
+# === Utilities ===
+python-dotenv==1.1.1
+pydantic==2.11.7
+joblib==1.5.1
+psutil==7.0.0
+tqdm==4.67.1
 
-# Pour les tests
-httpx>=0.24.1
-pytest-asyncio>=0.21.1
+# === File Handling ===
+aiofiles==24.1.0
 
-# Pour le module de résumé réglementaire
-jinja2>=3.1.0
-weasyprint>=59.0
-python-dateutil>=2.8.0
+# === Authentication & Security ===
+bcrypt==4.3.0
+cryptography==45.0.5
 
-# Pour l'upload et export de fichiers
-reportlab>=4.0.0  # Génération PDF
-python-docx>=1.1.0  # Génération Word documents
-python-docx-template>=0.20.0  # Templates Word avec JSON
-python-magic>=0.4.27  # Validation de type de fichier par contenu
-aiofiles>=23.2.0  # Async file handling
+# === Web & HTTP ===
+requests==2.32.4
+httpx==0.28.1
+
+# === Configuration & Serialization ===
+PyYAML==6.0.2
+toml==0.10.2
+
+# === Async & Concurrency ===
+anyio==4.9.0
+
+# === Monitoring & Telemetry ===
+opentelemetry-api==1.36.0
+opentelemetry-sdk==1.36.0
+
+# === CLI & User Interface ===
+rich==14.1.0
+typer==0.16.0
+click==8.2.1
+
+# === Development & Build Tools ===
+# (Included for completeness, can be removed in production)
+setuptools>=80.0.0
