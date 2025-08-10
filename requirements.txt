@@ -42,5 +42,8 @@ tqdm==4.67.1
 chromadb==1.0.15
 
 # === Text Processing (essential for chunking) ===
-chonkie[st]==1.1.1
+# Install CPU-only versions to avoid CUDA bloat on Railway
+--index-url https://download.pytorch.org/whl/cpu
+torch==2.5.1+cpu
 sentence-transformers==5.0.0
+chonkie==1.1.1
