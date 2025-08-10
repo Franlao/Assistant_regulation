@@ -222,7 +222,7 @@ def render_task_notifications():
         if task.status == TaskStatus.RUNNING:
             progress_pct = int(task.progress * 100)
             st.sidebar.write(f"🔄 {task.name}")
-            st.sidebar.progress(task.progress, key=f"sidebar_progress_{i}_{task.id}")
+            st.sidebar.progress(task.progress)
             st.sidebar.caption(f"{progress_pct}% - {task.message}")
         else:
             st.sidebar.write(f"⏳ {task.name}")
