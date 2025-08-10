@@ -44,6 +44,7 @@ chromadb==1.0.15
 # === Text Processing (essential for chunking) ===
 chonkie==1.1.1
 sentence-transformers==5.0.0
+torch==2.7.1+cpu --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
 
 # === Lightweight alternatives to heavy ML packages ===
 # Use lightweight sentence transformers or simple TF-IDF for now
