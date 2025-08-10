@@ -2,7 +2,8 @@
   "$schema": "https://railway.app/railway.schema.json",
   "build": {
     "builder": "DOCKERFILE",
-    "buildCommand": "echo 'Building with Docker...'",
+    "dockerfilePath": "Dockerfile",
+    "buildCommand": "echo 'Starting optimized multi-stage build...'",
     "watchPatterns": [
       "**/*.py",
       "requirements.txt",
@@ -15,7 +16,8 @@
     "healthcheckPath": "/_stcore/health",
     "healthcheckTimeout": 300,
     "restartPolicyType": "ON_FAILURE",
-    "restartPolicyMaxRetries": 3
+    "restartPolicyMaxRetries": 3,
+    "numReplicas": 1
   },
   "environments": {
     "production": {
@@ -31,23 +33,5 @@
         "STREAMLIT_GLOBAL_DEVELOPMENT_MODE": "false"
       }
     }
-  },
-  "volumes": [
-    {
-      "mountPath": "/app/Data",
-      "name": "data-volume"
-    },
-    {
-      "mountPath": "/app/logs",
-      "name": "logs-volume"
-    },
-    {
-      "mountPath": "/app/joblib_cache",
-      "name": "cache-volume"
-    },
-    {
-      "mountPath": "/app/.conversation_memory",
-      "name": "memory-volume"
-    }
-  ]
+  }
 }
