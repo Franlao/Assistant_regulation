@@ -197,15 +197,70 @@ class QueryProcessor:
         search_type = search_config.get("search_type", "classic")
         params = search_config.get("params", {})
         
+        # DEBUG supprimé
+        
         if search_type == "by_regulation":
-            text_results = self.retrieval_service.search_by_regulation(
-                regulation_code=params.get("regulation_code"),
-                query=params.get("query"),
-                top_k=top_k,
+            regulation_code = params.get("regulation_code")
+            query = params.get("query")
+            # DEBUG supprimé
+            
+            # Essayer plusieurs variantes du code de réglementation
+            text_results = None
+            
+            # Extraire le numéro de la réglementation
+            import re
+            number_match = re.search(r'R?(\d+)', regulation_code)
+            if number_match:
+                number = number_match.group(1)
+                padded_number = number.zfill(3)  # Padding avec des zéros: "46" -> "046"
+                
+                regulation_variants = [
+                    regulation_code,  # Ex: "ECE R46"
+                    regulation_code.replace("ECE ", ""),  # Ex: "R46"
+                    f"R{padded_number}",  # Ex: "R046" (SOLUTION PRINCIPALE)
+                    f"R.{padded_number}",  # Ex: "R.046"
+                    f"UN R{padded_number}",  # Ex: "UN R046"
+                    f"ECE R{padded_number}",  # Ex: "ECE R046"
+                ]
+            else:
+                # Fallback si on ne trouve pas de numéro
+                regulation_variants = [
+                    regulation_code,
+                    regulation_code.replace("ECE ", ""),
+                    regulation_code.replace("ECE ", "").replace("R", "R."),
+                    regulation_code.replace("ECE ", "UN "),
+                ]
+            
+            for variant in regulation_variants:
+                # DEBUG supprimé
+                text_results = self.retrieval_service.search_by_regulation(
+                    regulation_code=variant,
+                    query=query,
+                    top_k=top_k,
+                )
+                if text_results:
+                    # DEBUG supprimé
+                    break
+                else:
+                    # DEBUG supprimé
+                    pass
+            
+            # Si aucune variante ne fonctionne, faire une recherche générale
+            if not text_results:
+                # DEBUG supprimé
+                text_results = self.retrieval_service.retrieve(
+                    query=query,
+                    use_images=False,
+                    use_tables=False,
+                    top_k=top_k,
+                )["text"]  # Récupérer seulement les chunks de texte
+                # DEBUG supprimé
+            
+            result = self._complete_multimodal_search(
+                text_results, query, use_images, use_tables, top_k
             )
-            return self._complete_multimodal_search(
-                text_results, params.get("query"), use_images, use_tables, top_k
-            )
+            # DEBUG supprimé
+            return result
             
         elif search_type == "full_regulation":
             text_results = self.retrieval_service.get_all_chunks_for_regulation(
@@ -236,27 +291,37 @@ class QueryProcessor:
             )
             
         else:  # classic
-            return self.retrieval_service.retrieve(
-                query=params.get("query"),
+            query_to_search = params.get("query")
+            
+            result = self.retrieval_service.retrieve(
+                query=query_to_search,
                 use_images=use_images,
                 use_tables=use_tables,
                 top_k=top_k,
             )
+            # DEBUG supprimé
+            return result
 
     def _process_chunks(self, query: str, chunks: Dict, top_k: int) -> Dict:
         """Traite les chunks (reranking et validation)."""
         
+        # DEBUG supprimé
+        
         # Rerank les chunks pour maximiser la pertinence
         for chunk_type in ["text", "images", "tables"]:
             if chunks.get(chunk_type):
+                # DEBUG supprimé
                 chunks[chunk_type] = self.reranker_service.rerank_chunks(
                     query, chunks[chunk_type], top_k=10
                 )
+                # DEBUG supprimé
         
         # Validation si activée
         if self.enable_verification and self.validation_service:
             chunks = self.validation_service.validate_chunks(query, chunks)
-            
+            # DEBUG supprimé
+        
+        # DEBUG supprimé
         return chunks
 
     def _complete_multimodal_search(

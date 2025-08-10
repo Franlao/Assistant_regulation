@@ -94,26 +94,28 @@ class VerifAgent:
         for i, chunk in enumerate(chunks):
             try:
                 if verbose:
-                    print(f"\n--- Vérification du chunk {i+1}/{len(chunks)} ---")
-                    print(f"Type: {chunk.get('type', 'inconnu')}")
-                    print(f"Contenu (extrait): {str(chunk.get('content', ''))[:100]}...")
+                    # Logs de debug supprimés
+                    pass
 
                 prompt = self._generate_verification_prompt(question, chunk)
 
                 if verbose:
-                    print(f"\nPrompt envoyé au LLM:\n{prompt}\n")
+                    # Logs de debug supprimés
+                    pass
 
                 response = self._get_llm_response(prompt)
 
                 if verbose:
-                    print(f"Réponse du LLM: {response}")
+                    # Logs de debug supprimés
+                    pass
 
                 useful, confidence = self._parse_llm_response(response)
 
                 is_relevant = useful and (confidence is None or confidence >= confidence_threshold)
 
                 if verbose:
-                    print(f"Décision: {'ACCEPTÉ' if is_relevant else 'REJETÉ'}")
+                    # Logs de debug supprimés
+                    pass
 
                 if is_relevant:
                     valid_chunks.append({
@@ -132,13 +134,13 @@ class VerifAgent:
             except Exception as e:
                 self.logger.error(f"Erreur de vérification: {str(e)}")
                 if verbose:
-                    print(f"ERREUR: {str(e)}")
+                    # Log détaillé supprimé en mode silencieux
+                    pass
                 continue
             
         if verbose:
-            print(f"\n=== Résumé ===")
-            print(f"Chunks acceptés: {len(valid_chunks)}/{len(chunks)}")
-            print(f"Chunks rejetés: {len(rejected_chunks)}/{len(chunks)}")
+            # Logs de debug supprimés
+            pass
 
         return valid_chunks
 
@@ -180,25 +182,14 @@ class VerifAgent:
         Fonction de diagnostic pour tester la vérification sur un seul chunk
         et afficher tous les détails du processus.
         """
-        print("\n===== TEST DE VÉRIFICATION =====")
-        print(f"Question: {question}")
-        print(f"Chunk type: {sample_chunk.get('type', 'unknown')}")
-        print(f"Contenu (échantillon): {str(sample_chunk.get('content', ''))[:150]}...")
+        # Sorties de test verboses supprimées
         
         prompt = self._generate_verification_prompt(question, sample_chunk)
-        print("\n----- PROMPT -----")
-        print(prompt)
         
-        print("\n----- RÉPONSE LLM -----")
+        
         response = self._get_llm_response(prompt)
-        print(response)
         
-        print("\n----- ANALYSE -----")
         is_relevant = self._is_positive_response(response)
-        print(f"Mots-clés cherchés: {', '.join(['oui', 'yes', 'y', 'valid', 'correct'])}")
-        print(f"Décision: {'ACCEPTÉ' if is_relevant else 'REJETÉ'}")
-        
-        print("\n===== FIN DU TEST =====\n")
         return is_relevant
 
     # ------------------------------------------------------------------

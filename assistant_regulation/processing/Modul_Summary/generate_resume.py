@@ -15,14 +15,14 @@ try:
     WEASYPRINT_AVAILABLE = True
 except ImportError:
     WEASYPRINT_AVAILABLE = False
-    print("Attention: WeasyPrint n'est pas installé. La conversion PDF ne sera pas disponible.")
+    # Mode silencieux si WeasyPrint absent
 
 from .regulation_summarizer import RegulationSummarizer, SummaryMode
 from .html_template_renderer import HTMLTemplateRenderer
 
 # Configuration du logging
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.WARNING,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     handlers=[
         logging.StreamHandler(sys.stdout),

@@ -14,8 +14,8 @@ import logging
 import cv2
 import numpy as np
 
-# Configuration logging
-logging.basicConfig(level=logging.INFO)
+# Configuration logging (moins verbeux par défaut)
+logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
 
 class EnhancedImageChunker:

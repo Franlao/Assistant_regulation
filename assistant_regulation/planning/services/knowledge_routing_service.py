@@ -13,8 +13,8 @@ from enum import Enum
 import ollama
 from mistralai import Mistral, UserMessage
 
-# Configuration du logging
-logging.basicConfig(level=logging.INFO)
+# Configuration du logging (moins verbeux par défaut)
+logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
 
 class KnowledgeSource(Enum):
@@ -39,7 +39,7 @@ class KnowledgeRoutingService:
     Détermine si une question nécessite la base vectorielle ou les connaissances générales.
     """
     
-    def __init__(self, llm_provider: str = "ollama", model_name: str = "llama3.2"):
+    def __init__(self, llm_provider: str = "mistral", model_name: str = "mistral-medium"):
         self.llm_provider = llm_provider
         self.model_name = model_name
         self.mistral_client = None
@@ -403,6 +403,5 @@ if __name__ == "__main__":
     ]
     
     for query in test_queries:
-        print(f"\n{'='*80}")
-        print(service.explain_decision(query))
-        print(f"{'='*80}")
+        # Sortie console de test désactivée
+        pass

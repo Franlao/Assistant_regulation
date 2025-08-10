@@ -175,3 +175,6 @@ class SimpleTextRetriever(BaseRetriever):
             'chunker_type': metadatas[0].get('chunker_type', 'unknown'),
             'has_global_context': metadatas[0].get('has_global_context', False)
         }
+
+# Alias pour maintenir la compatibilité avec l'ancien code
+TextRetriever = SimpleTextRetriever

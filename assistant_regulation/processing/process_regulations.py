@@ -26,7 +26,7 @@ def setup_logging():
         log_dir.mkdir(exist_ok=True)
         
         logging.basicConfig(
-            level=logging.INFO,
+            level=logging.WARNING,
             format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
             handlers=[
                 logging.FileHandler(log_dir / "process_regulations.log", encoding='utf-8'),
@@ -36,10 +36,10 @@ def setup_logging():
         logger = logging.getLogger(__name__)
         logger.info("Système de logging initialisé")
         return logger
-    except Exception as e:
-        print(f"Erreur lors de l'initialisation du logging: {e}")
+    except Exception:
+        # Erreur silencieuse d'init logging
         # Fallback vers un logger basique
-        logging.basicConfig(level=logging.INFO)
+        logging.basicConfig(level=logging.WARNING)
         return logging.getLogger(__name__)
 
 logger = setup_logging()
@@ -211,9 +211,9 @@ def clean_database_collections():
         
         # Nettoyer les collections
         try:
-            temp_text_retriever.client.delete_collection("hierarchical_text")
+            temp_text_retriever.client.delete_collection("simple_text")
         except Exception as e:
-            logger.warning(f"Collection 'hierarchical_text' déjà supprimée ou introuvable: {e}")
+            logger.warning(f"Collection 'simple_text' déjà supprimée ou introuvable: {e}")
             
         try:
             temp_image_retriever.client.delete_collection("pdf_images")
@@ -1055,6 +1055,167 @@ def test_environment(data_dir):
         logger.error("✗ Problèmes détectés dans l'environnement")
     
     return success
+
+def process_single_pdf_file(pdf_file_path: str, *, text_only: bool = False):
+    """
+    Traite un seul fichier PDF réglementaire.
+    
+    Args:
+        pdf_file_path: Chemin vers le fichier PDF à traiter
+        text_only: Si True, ne traite que le texte (pas d'images ni de tables)
+        
+    Returns:
+        bool: True si le traitement a réussi, False sinon
+    """
+    start_time = time.time()
+    logger.info(f"=== DÉBUT DU TRAITEMENT DU FICHIER {pdf_file_path} ===")
+    
+    try:
+        # 1. Validation du fichier
+        pdf_path = Path(pdf_file_path)
+        if not pdf_path.exists():
+            logger.error(f"Le fichier {pdf_file_path} n'existe pas")
+            return False
+            
+        if not pdf_path.suffix.lower() == '.pdf':
+            logger.error(f"Le fichier {pdf_file_path} n'est pas un fichier PDF")
+            return False
+        
+        logger.info(f"Traitement du fichier PDF: {pdf_path.name}")
+        logger.info(f"Mode text_only: {text_only}")
+        
+        # 2. Initialisation des retrievers
+        try:
+            text_retriever = SimpleTextRetriever()
+            image_retriever = ImageRetriever()
+            table_retriever = TableRetriever()
+        except Exception as e:
+            logger.error(f"Erreur lors de l'initialisation des retrievers: {e}")
+            return False
+        
+        # 3. Traitement du fichier
+        success_count = 0
+        
+        try:
+            # Traitement du texte (toujours fait)
+            text_chunks = []
+            try:
+                from .Modul_Process.chunking_utils import extract_document_metadata
+                
+                # Extraire les métadonnées du document
+                metadata = extract_document_metadata(str(pdf_path))
+                
+                # Générer les chunks avec Late Chunker
+                chunks = hybrid_chunk_document(
+                    source_path=str(pdf_path),
+                    embed_model_id="all-MiniLM-L6-v2",
+                    max_tokens=1024
+                )
+                
+                if chunks:
+                    # Ajouter les métadonnées à tous les chunks
+                    for chunk in chunks:
+                        chunk.update(metadata)
+                        # S'assurer que l'ID est unique
+                        if not chunk.get("id"):
+                            chunk["id"] = str(uuid.uuid4())
+                    
+                    # Utiliser le même processus que l'ingestion complète
+                    text_chunks = ensure_chunk_ids(chunks)
+                    text_chunks = remove_duplicates(text_chunks)
+                    
+                    # Nettoyer les métadonnées pour compatibilité ChromaDB
+                    cleaned_text_chunks = clean_chunk_metadata(text_chunks)
+                    
+                    # Stocker avec gestion d'erreurs robuste
+                    text_retriever.store_chunks(cleaned_text_chunks)
+                    success_count += 1
+                    logger.info(f"Chunks texte traités: {len(cleaned_text_chunks)}")
+                
+            except Exception as e:
+                logger.error(f"Erreur lors du traitement du texte pour {pdf_path.name}: {e}")
+            
+            # Traitement des images et tables seulement si text_only=False
+            logger.info(f"Vérification text_only={text_only}, not text_only={not text_only}")
+            if not text_only:
+                logger.info("Début traitement images et tables...")
+                # Images
+                try:
+                    image_chunks = pdf_to_image_chunks(str(pdf_path))
+                    if image_chunks:
+                        # Ajouter les métadonnées à tous les chunks d'images (MANQUAIT !)
+                        for chunk in image_chunks:
+                            chunk.update(metadata)
+                            if not chunk.get("id"):
+                                chunk["id"] = str(uuid.uuid4())
+                        
+                        # Utiliser le même processus que l'ingestion complète
+                        image_chunks = ensure_chunk_ids(image_chunks)
+                        image_chunks = remove_duplicates(image_chunks)
+                        cleaned_image_chunks = clean_chunk_metadata(image_chunks)
+                        
+                        image_retriever.store_chunks(cleaned_image_chunks)
+                        success_count += 1
+                        logger.info(f"Chunks images traités: {len(cleaned_image_chunks)}")
+                except Exception as e:
+                    logger.warning(f"Erreur lors du traitement des images pour {pdf_path.name}: {e}")
+                
+                # Tables
+                try:
+                    table_chunks = extract_tables(str(pdf_path))
+                    if table_chunks:
+                        # Ajouter les métadonnées à tous les chunks de tables (MANQUAIT !)
+                        for chunk in table_chunks:
+                            chunk.update(metadata)
+                            if not chunk.get("id"):
+                                chunk["id"] = str(uuid.uuid4())
+                        
+                        # Utiliser le même processus que l'ingestion complète
+                        table_chunks = ensure_chunk_ids(table_chunks)
+                        table_chunks = remove_duplicates(table_chunks)
+                        cleaned_table_chunks = clean_chunk_metadata(table_chunks)
+                        
+                        table_retriever.store_chunks(cleaned_table_chunks)
+                        success_count += 1
+                        logger.info(f"Chunks tables traités: {len(cleaned_table_chunks)}")
+                except Exception as e:
+                    logger.warning(f"Erreur lors du traitement des tables pour {pdf_path.name}: {e}")
+            
+        except Exception as e:
+            logger.error(f"Erreur lors du traitement de {pdf_path.name}: {e}")
+            return False
+        
+        # 4. Persistance des données
+        try:
+            for client in {text_retriever.client, image_retriever.client, table_retriever.client}:
+                client.persist()
+        except Exception:
+            pass  # Ignorer les erreurs de persistance
+        
+        # 5. Résumé
+        elapsed_time = time.time() - start_time
+        logger.info(f"=== TRAITEMENT TERMINÉ POUR {pdf_path.name} ===")
+        logger.info(f"Temps d'exécution: {elapsed_time:.2f}s")
+        logger.info(f"Fichiers traités avec succès: {success_count}")
+        
+        return success_count > 0
+        
+    except Exception as e:
+        logger.error(f"Erreur lors du traitement de {pdf_file_path}: {e}")
+        return False
+
+def get_default_config():
+    """
+    Retourne la configuration par défaut de l'application.
+    Wrapper pour maintenir la compatibilité avec l'ancien code.
+    """
+    try:
+        from config.config import get_config
+        return get_config()
+    except ImportError:
+        # Fallback en cas de problème d'import
+        logger.warning("Impossible d'importer la configuration, utilisation des valeurs par défaut")
+        return None
 
 # Usage
 if __name__ == "__main__":

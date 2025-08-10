@@ -53,7 +53,25 @@ class StreamingHandler:
         # Étape 1: Obtenir la décision de routage maître
         routing_decision = self.query_processor.master_routing_service.route_query(query)
         
-        # Étape 2: Exécuter selon la stratégie déterminée
+        # Étape 2: Émettre un chunk d'analyse avec les informations de routage
+        analysis_data = {
+            "needs_rag": routing_decision.response_strategy.value != "direct_llm",
+            "confidence": routing_decision.confidence_score,
+            "query_type": routing_decision.response_strategy.value,
+            "routing_decision": {
+                "response_strategy": routing_decision.response_strategy.value,
+                "confidence_score": routing_decision.confidence_score,
+                "search_config": routing_decision.search_config or {},
+                "reasoning": routing_decision.reasoning
+            }
+        }
+        
+        yield {
+            "type": "analysis", 
+            "content": analysis_data
+        }
+        
+        # Étape 3: Exécuter selon la stratégie déterminée
         if routing_decision.response_strategy.value == "direct_llm":
             # Réponse directe du LLM en streaming
             yield from self.generation_service.generate_answer_stream(
@@ -72,6 +90,23 @@ class StreamingHandler:
             
             # Rerank et validation
             chunks = self.query_processor._process_chunks(query, chunks, top_k)
+
+            # Traiter les chunks pour extraire les sources avec liens  
+            # Les chunks du RetrievalService sont organisés par type: chunks["text"], chunks["images"], chunks["tables"]
+            text_chunks = chunks.get("text", []) if isinstance(chunks, dict) else []
+            
+            from .response_builder import ResponseBuilder
+            processed_sources = ResponseBuilder._extract_sources(text_chunks)
+            
+            # Émettre les résultats de recherche
+            yield {
+                "type": "search_complete",
+                "content": {
+                    "sources": processed_sources,
+                    "images": chunks.get("images", []) if isinstance(chunks, dict) else [],
+                    "tables": chunks.get("tables", []) if isinstance(chunks, dict) else []
+                }
+            }
             
             # Génération de réponse en streaming
             context = self.query_processor.context_builder_service.build_context(chunks)
@@ -92,6 +127,16 @@ class StreamingHandler:
             
             chunks = self.query_processor._process_chunks(query, chunks, top_k)
             
+            # Émettre les résultats de recherche
+            yield {
+                "type": "search_complete",
+                "content": {
+                    "sources": [c for c in chunks if c.get("chunk_type") == "text"],
+                    "images": [c for c in chunks if c.get("chunk_type") == "image"],
+                    "tables": [c for c in chunks if c.get("chunk_type") == "table"]
+                }
+            }
+            
             # Générer réponse enrichie en streaming
             context = self.query_processor.context_builder_service.build_context(chunks)
             yield from self.generation_service.generate_answer_stream(
@@ -99,6 +144,14 @@ class StreamingHandler:
                 context=context,
                 conversation_context=conversation_context,
             )
+        
+        # Étape finale: Émettre un chunk de finalisation
+        yield {
+            "type": "done",
+            "content": {
+                "routing_decision": analysis_data["routing_decision"]
+            }
+        }
 
     def _process_traditional_routing_stream(
         self,
@@ -112,6 +165,12 @@ class StreamingHandler:
         
         analysis = self.query_processor.query_analyzer.analyse_query(query)
 
+        # Émettre un chunk d'analyse
+        yield {
+            "type": "analysis", 
+            "content": analysis
+        }
+
         # -------------------
         # 1. RAG if needed
         # -------------------
@@ -124,6 +183,21 @@ class StreamingHandler:
             )
 
             chunks = self.query_processor._process_chunks(query, chunks, top_k)
+
+            # Traiter les chunks pour extraire les sources avec liens
+            text_chunks = [c for c in chunks if isinstance(c, dict) and c.get("chunk_type") == "text"]
+            from .response_builder import ResponseBuilder
+            processed_sources = ResponseBuilder._extract_sources(text_chunks)
+            
+            # Émettre les résultats de recherche
+            yield {
+                "type": "search_complete",
+                "content": {
+                    "sources": processed_sources,
+                    "images": chunks.get("images", []) if isinstance(chunks, dict) else [],
+                    "tables": chunks.get("tables", []) if isinstance(chunks, dict) else []
+                }
+            }
             
             context = self.query_processor.context_builder_service.build_context(chunks)
             yield from self.generation_service.generate_answer_stream(
@@ -138,4 +212,10 @@ class StreamingHandler:
             yield from self.generation_service.generate_answer_stream(
                 query,
                 conversation_context=conversation_context,
-            ) 
+            )
+        
+        # Étape finale
+        yield {
+            "type": "done",
+            "content": {}
+        } 

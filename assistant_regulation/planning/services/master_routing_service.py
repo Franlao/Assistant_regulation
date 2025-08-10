@@ -13,8 +13,8 @@ from enum import Enum
 from .knowledge_routing_service import KnowledgeRoutingService, KnowledgeSource
 from .intelligent_routing_service import IntelligentRoutingService
 
-# Configuration du logging
-logging.basicConfig(level=logging.INFO)
+# Configuration du logging (moins verbeux par défaut)
+logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
 
 class ResponseStrategy(Enum):
@@ -40,7 +40,7 @@ class MasterRoutingService:
     2. Routage intelligent des recherches (si base vectorielle nécessaire)
     """
     
-    def __init__(self, llm_provider: str = "ollama", model_name: str = "llama3.2"):
+    def __init__(self, llm_provider: str = "mistral", model_name: str = "mistral-medium"):
         # Initialiser les services sous-jacents
         self.knowledge_router = KnowledgeRoutingService(llm_provider, model_name)
         self.intelligent_router = IntelligentRoutingService(llm_provider, model_name)
@@ -256,7 +256,7 @@ class MasterRoutingService:
 # Exemple d'utilisation et tests
 if __name__ == "__main__":
     # Test du service maître
-    master_router = MasterRoutingService(llm_provider="ollama", model_name="llama3.2")
+    master_router = MasterRoutingService(llm_provider="mistral", model_name="mistral-medium")
     
     # Tests de différents types de questions
     test_queries = [
@@ -276,14 +276,5 @@ if __name__ == "__main__":
     ]
     
     for query in test_queries:
-        print(f"\n{'='*100}")
-        print(master_router.explain_routing_decision(query))
-        print(f"{'='*100}")
-        
-        # Afficher aussi le plan d'exécution
-        plan = master_router.get_execution_plan(query)
-        print(f"\nPLAN D'EXÉCUTION:")
-        print(f"Stratégie: {plan['strategy']} (confiance: {plan['confidence']:.0%})")
-        for step in plan['steps']:
-            print(f"  Étape {step.get('step', '?')}: {step.get('description', step.get('action', 'Action inconnue'))}")
-        print(f"\n{'='*100}")
+        # Sortie console de test désactivée
+        pass

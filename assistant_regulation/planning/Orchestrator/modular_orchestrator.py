@@ -17,10 +17,10 @@ from assistant_regulation.planning.services.master_routing_service import Master
 from assistant_regulation.planning.services.intelligent_routing_service import IntelligentRoutingService
 from assistant_regulation.planning.services.knowledge_routing_service import KnowledgeRoutingService
 from assistant_regulation.planning.agents.query_analysis_agent import QueryAnalysisAgent
-from .query_processor import QueryProcessor
-from .response_builder import ResponseBuilder
-from .streaming_handler import StreamingHandler
-from .compatibility_adapter import CompatibilityAdapter
+from assistant_regulation.planning.sync.query_processor import QueryProcessor
+from assistant_regulation.planning.sync.response_builder import ResponseBuilder
+from assistant_regulation.planning.sync.streaming_handler import StreamingHandler
+from assistant_regulation.planning.sync.compatibility_adapter import CompatibilityAdapter
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -192,6 +192,10 @@ class ModularOrchestrator:
     def clear_conversation_memory(self):
         """Vide la mémoire conversationnelle."""
         self.compatibility_adapter.clear_conversation_memory()
+    
+    def export_conversation(self) -> Dict:
+        """Exporte la conversation actuelle."""
+        return self.compatibility_adapter.export_conversation()
     
     @property
     def conversation_memory(self):

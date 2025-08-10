@@ -13,8 +13,8 @@ from enum import Enum
 import ollama
 from mistralai import Mistral,UserMessage
 
-# Configuration du logging
-logging.basicConfig(level=logging.INFO)
+# Configuration du logging (moins verbeux par défaut)
+logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
 
 class SearchType(Enum):
@@ -41,7 +41,7 @@ class IntelligentRoutingService:
     Analyse les requêtes avec un LLM pour déterminer le meilleur type de recherche.
     """
     
-    def __init__(self, llm_provider: str = "ollama", model_name: str = "llama3.2"):
+    def __init__(self, llm_provider: str = "mistral", model_name: str = "mistral-medium"):
         self.llm_provider = llm_provider
         self.model_name = model_name
         self.mistral_client = None
@@ -151,7 +151,7 @@ ANALYSE:"""
         # Détecter les codes de réglementation
         import re
         reg_matches = re.findall(r'\b(r\d+|ece\s+r\d+|un\s+r\d+)\b', query_lower)
-        regulations = [match.replace(' ', ' ').upper() for match in reg_matches]
+        regulations = [match.replace(' ', ' ').upper() for match in reg_matches if match and isinstance(match, str)]
         
         # Déterminer le type de recherche
         if any(word in query_lower for word in ['résumé', 'complet', 'synthèse', 'overview']):
@@ -393,6 +393,5 @@ if __name__ == "__main__":
     ]
     
     for query in test_queries:
-        print(f"\n{'='*60}")
-        print(service.explain_decision(query))
-        print(f"{'='*60}")
+        # Sortie console de test désactivée
+        pass

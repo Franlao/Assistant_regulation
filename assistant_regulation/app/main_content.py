@@ -3,12 +3,9 @@ Contenu principal de l'application Streamlit
 """
 import streamlit as st
 import time
-import uuid
-from datetime import datetime
-from assistant_regulation.app.streamlit_utils import get_current_time, display_regulation_metrics, generate_unique_key
+from assistant_regulation.app.streamlit_utils import get_current_time, display_regulation_metrics, generate_unique_key, get_intelligent_routing_badge
 from .display_components import display_sources, display_images, display_tables, stream_assistant_response
-from assistant_regulation.planning.sync.orchestrator_2 import SimpleOrchestrator
-from assistant_regulation.app.streamlit_utils import display_message
+from assistant_regulation.planning.Orchestrator.modular_orchestrator import ModularOrchestrator
 
 
 def render_welcome_section(t):
@@ -28,20 +25,7 @@ def render_welcome_section(t):
     </div>
     """, unsafe_allow_html=True)
     
-    # Information sur la mémoire conversationnelle si activée
-    if st.session_state.settings.get("enable_conversation_memory", False):
-        st.markdown("""
-        <div class="info-card" style="background: linear-gradient(135deg, rgba(46, 204, 113, 0.1), rgba(39, 174, 96, 0.1)); border-left: 4px solid #2ecc71; color: white;">
-            <h4>🧠 Mémoire Conversationnelle Activée</h4>
-            <p>L'assistant se souvient de nos échanges précédents pour des réponses plus contextuelles :</p>
-            <ul>
-                <li><strong>Fenêtre glissante :</strong> Garde les derniers échanges en mémoire active</li>
-                <li><strong>Résumés automatiques :</strong> Condense les anciens échanges pour optimiser la mémoire</li>
-                <li><strong>Contexte intelligent :</strong> Comprend vos questions de suivi et références précédentes</li>
-            </ul>
-            <p><em>💡 Vous pouvez faire référence aux réponses précédentes ou poser des questions de suivi !</em></p>
-        </div>
-        """, unsafe_allow_html=True)
+    # (Bloc d'information Mémoire Conversationnelle supprimé)
 
 
 def render_header(t, config):
@@ -74,15 +58,10 @@ def render_message_history(t, config):
             from assistant_regulation.app.streamlit_utils import display_message
             display_message(message, is_user=True, t=t)
         else:  # assistant message
-            # Afficher la réponse avec le mode (sans streaming car déjà dans l'historique)
-            if "analysis" in message and message["analysis"] is not None:
-                analysis = message["analysis"]
-                needs_rag = analysis.get("needs_rag", False)
-                mode_badge = '<span class="badge badge-blue">Mode RAG</span>' if needs_rag else '<span class="badge badge-green">Mode Direct</span>'
-            else:
-                # Pas d'analyse disponible
-                mode_badge = '<span class="badge badge-gray">Mode Inconnu</span>'
-                analysis = {}
+            # Afficher la réponse avec le nouveau badge intelligent
+            analysis = message.get("analysis", {})
+            routing_decision = message.get("routing_decision", {})
+            mode_badge = get_intelligent_routing_badge(analysis, routing_decision)
             
             st.markdown(f"""
             <div class="assistant-message">
@@ -106,7 +85,7 @@ def render_message_history(t, config):
                 display_tables(message["tables"], t=t)
                 
             if "sources" in message and message["sources"]:
-                display_sources(message["sources"], t=t)
+                display_sources(message["sources"], t=t, compact=True)
 
 
 def process_user_query(query, t, config):
@@ -126,6 +105,7 @@ def process_user_query(query, t, config):
     # Afficher l'indicateur de chargement
     progress_placeholder = st.empty()
     try:
+        
         # Vérifier que l'orchestrateur est initialisé ou doit être recréé
         orchestrator_version = "modular_1.0"
         needs_recreate = (
@@ -135,7 +115,7 @@ def process_user_query(query, t, config):
         )
         
         if needs_recreate:
-            st.session_state.orchestrator = SimpleOrchestrator(
+            st.session_state.orchestrator = ModularOrchestrator(
                 llm_provider=st.session_state.settings["llm_provider"],
                 model_name=st.session_state.settings["model_name"],
                 enable_verification=st.session_state.settings["enable_verification"]
@@ -144,11 +124,11 @@ def process_user_query(query, t, config):
             st.session_state.orchestrator._version = orchestrator_version
         
         # Phase 1: Analyse de la requête
-        progress_placeholder.markdown("<p style='color: white;'>🔍 Analyse de la requête...</p>", unsafe_allow_html=True)
+        progress_placeholder.markdown("<p style='color: white;'>Analyse de la requête...</p>", unsafe_allow_html=True)
         time.sleep(0.5)
         
         # Phase 2: Streaming de la réponse
-        progress_placeholder.markdown("<p style='color: white;'>📝 Génération de la réponse...</p>", unsafe_allow_html=True)
+        progress_placeholder.markdown("<p style='color: white;'>Génération de la réponse...</p>", unsafe_allow_html=True)
         
         # Streamer la réponse avec contexte conversationnel
         result = stream_assistant_response(
@@ -170,6 +150,7 @@ def process_user_query(query, t, config):
                 "tables": result["tables"],
                 "sources": result["sources"],
                 "analysis": result["analysis"],
+                "routing_decision": result.get("routing_decision"),
                 "timestamp": get_current_time()
             }
             
@@ -203,7 +184,7 @@ def process_user_query(query, t, config):
             if result["tables"]:
                 display_tables(result["tables"], t=t)
                 
-            display_sources(result["sources"], t=t)
+            display_sources(result["sources"], t=t, compact=False)
     
     except Exception as e:
         st.error(f"Une erreur s'est produite: {str(e)}")

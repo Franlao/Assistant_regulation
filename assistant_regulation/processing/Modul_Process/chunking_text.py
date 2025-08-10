@@ -10,8 +10,8 @@ from typing import List, Dict, Any, Optional
 import fitz  # PyMuPDF pour extraction rapide
 from assistant_regulation.processing.Modul_Process.chunking_utils import extract_document_metadata
 
-# Configuration logging
-logging.basicConfig(level=logging.INFO)
+# Configuration logging (moins verbeux par défaut)
+logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
 
 class LateChunkerRegulation:

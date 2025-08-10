@@ -9,13 +9,11 @@ vers LangGraphOrchestrator avec compatibilité totale.
 import os
 import sys
 import time
-from typing import Dict, Any
 
 # Ajouter le chemin du projet
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Import des orchestrateurs
-from assistant_regulation.planning.sync.modular_orchestrator import ModularOrchestrator
 from assistant_regulation.planning.langgraph.orchestrator import LangGraphOrchestrator
 from assistant_regulation.planning.langgraph.compatibility_adapter import LangGraphCompatibilityAdapter
 

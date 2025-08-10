@@ -8,8 +8,8 @@ import logging
 from pathlib import Path
 from typing import List
 
-# Configuration logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+# Configuration logging (moins verbeux par défaut)
+logging.basicConfig(level=logging.WARNING, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
 
 def find_corrupted_cache_files(cache_dir: str = "description_cache") -> List[Path]:

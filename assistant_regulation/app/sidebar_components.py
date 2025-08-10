@@ -2,11 +2,8 @@
 Composants de la barre latérale pour l'application Streamlit
 """
 import streamlit as st
-import uuid
-from typing import Dict, Any, Optional
-from assistant_regulation.app.streamlit_utils import APIHealthChecker
-from assistant_regulation.planning.sync.modular_orchestrator import ModularOrchestrator
-from config import get_config, save_config, reload_config
+from assistant_regulation.planning.Orchestrator.modular_orchestrator import ModularOrchestrator
+from config import save_config, reload_config
 from assistant_regulation.app.streamlit_utils import export_conversation_to_pdf
 
 
@@ -211,40 +208,45 @@ def render_sidebar(config, t, session_state):
     
     # Logo
     st.image("assets/IVECO_BUS_Logo_RGB_Web.svg", width=220)
-    st.title(t("settings_title"))
-    
-    # Sélecteur de langue
-    selected_language = render_language_selector(config, t, session_state.language)
-    
-    # Mettre à jour la langue si changée
-    if selected_language != session_state.language:
-        session_state.language = selected_language
-        st.rerun()
-    
-    # Configuration LLM
-    llm_provider, model_name = render_llm_configuration(config, t, session_state.settings)
-    session_state.settings["llm_provider"] = llm_provider
-    session_state.settings["model_name"] = model_name
-    
-    # Options de recherche
-    use_verification, use_images, use_tables = render_search_options(t, session_state.settings)
-    session_state.settings["enable_verification"] = use_verification
-    session_state.settings["use_images"] = use_images
-    session_state.settings["use_tables"] = use_tables
-    
-    # Mémoire conversationnelle
-    enable_memory, window_size = render_conversation_memory(
-        config, session_state.settings, session_state.orchestrator
+
+    # ------------------- Navigation -------------------
+    st.markdown("### 🧭 Navigation")
+
+    available_pages = ["💬 Chat", "⚙️ Configuration", "🗃️ Database"]
+
+    # Initialiser la page sélectionnée
+    if 'selected_page' not in session_state:
+        session_state.selected_page = "💬 Chat"
+
+    selected_page = st.selectbox(
+        "Aller à la page:",
+        available_pages,
+        index=available_pages.index(session_state.selected_page),
+        key="page_selector"
     )
-    session_state.settings["enable_conversation_memory"] = enable_memory
-    session_state.settings["conversation_window_size"] = window_size
-    # Initialiser ou mettre à jour l'orchestrateur
+
+    if selected_page != session_state.selected_page:
+        session_state.selected_page = selected_page
+        st.rerun()
+
+    page_descriptions = {
+        "💬 Chat": "Interface conversationnelle RAG",
+        "⚙️ Configuration": "Paramètres LLM et RAG", 
+        "🗃️ Database": "Gestion ChromaDB (Admin)"
+    }
+
+    if selected_page in page_descriptions:
+        st.caption(page_descriptions[selected_page])
+
+    if selected_page == "🗃️ Database":
+        st.warning("⚠️ Accès administrateur requis")
+
+    st.divider()
+
+    # Initialiser ou mettre à jour l'orchestrateur (aucun paramètre visible)
     initialize_or_update_orchestrator(session_state.settings, session_state, config)
     
     st.divider()
-    
-    # Gestion de configuration
-    render_configuration_management(config, session_state.settings)
     
     # Boutons d'action
     if st.button(t("clear_history"), type="primary", key="clear_history_btn"):

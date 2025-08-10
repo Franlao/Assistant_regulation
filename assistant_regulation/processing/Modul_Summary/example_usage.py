@@ -8,8 +8,8 @@ from pathlib import Path
 from assistant_regulation.processing.Modul_Summary import RegulationSummarizer
 from assistant_regulation.processing.Modul_Summary.generate_resume import RegulationResumeGenerator
 
-# Configuration du logging pour l'exemple
-logging.basicConfig(level=logging.INFO)
+# Configuration du logging pour l'exemple (moins verbeux)
+logging.basicConfig(level=logging.WARNING)
 
 def example_simple_json_summary():
     """Exemple 1: Génération simple d'un résumé JSON"""

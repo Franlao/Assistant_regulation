@@ -54,8 +54,8 @@ def extract_table_from_text(text):
                 if len(table_data) > 1:  # S'assurer qu'il y a au moins un en-tête et une ligne
                     columns = ensure_valid_column_names(table_data[0] if table_data[0] else None)
                     return pd.DataFrame(table_data[1:], columns=columns)
-        except Exception as e:
-            print(f"Erreur lors de l'extraction du tableau (cas 1): {e}")
+        except Exception:
+            # Erreur silencieuse (cas 1)
             pass
     
     # Cas 2: Tableau avec format plus complexe (plusieurs blocs)
@@ -72,8 +72,8 @@ def extract_table_from_text(text):
             if all_rows and len(all_rows) > 1:  # S'assurer qu'il y a au moins un en-tête et une ligne
                 columns = ensure_valid_column_names(all_rows[0] if all_rows[0] else None)
                 return pd.DataFrame(all_rows[1:], columns=columns)
-        except Exception as e:
-            print(f"Erreur lors de l'extraction du tableau (cas 2): {e}")
+        except Exception:
+            # Erreur silencieuse (cas 2)
             pass
     
     # Cas 3: Tableau formaté en texte avec espaces ou pipes
@@ -104,8 +104,8 @@ def extract_table_from_text(text):
                     
                     columns = ensure_valid_column_names(rows[0])
                     return pd.DataFrame(rows[1:], columns=columns)
-            except Exception as e:
-                print(f"Erreur lors de l'extraction du tableau (cas 3): {e}")
+            except Exception:
+                # Erreur silencieuse (cas 3)
                 pass
     
     # Si aucun tableau n'a pu être extrait, retourner None

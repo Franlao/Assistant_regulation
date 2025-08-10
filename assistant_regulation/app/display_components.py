@@ -4,25 +4,451 @@ Composants d'affichage pour l'application Streamlit
 import streamlit as st
 import pandas as pd
 import time
+import base64
+import os
 from datetime import datetime
 from typing import Dict, List, Any, Optional
 from .streamlit_utils import get_current_time, extract_table_from_text, generate_unique_key
 
 
-def display_sources(sources, t):
-    """Affiche les sources de façon formatée - version basique"""
-    if not sources:
+def display_fullscreen_pdf(file_path, page_number, document_name, source_id):
+    """Affiche le PDF en fullscreen avec modal Streamlit"""
+    try:
+        import fitz  # PyMuPDF
+    except ImportError:
+        st.error("PyMuPDF n'est pas installé. Exécutez: pip install PyMuPDF")
         return
     
-    # Version basique simple
-    with st.expander("Sources utilisées", expanded=False):
-        for i, source in enumerate(sources):
+    # Créer un modal fullscreen avec st.dialog (Streamlit >= 1.31)
+    @st.dialog(f"{document_name} - Page {page_number}", width="large")
+    def show_pdf():
+        if not os.path.exists(file_path):
+            st.error("Document non accessible")
+            return
+            
+        doc = fitz.open(file_path)
+        if page_number > len(doc):
+            st.error(f"Page {page_number} non trouvée")
+            doc.close()
+            return
+            
+        page = doc[page_number - 1]
+        
+        # Convertir avec haute résolution pour le fullscreen
+        pix = page.get_pixmap(matrix=fitz.Matrix(3.0, 3.0))  # Zoom 3x pour fullscreen
+        img_data = pix.tobytes("png")
+        img_b64 = base64.b64encode(img_data).decode()
+        
+        # Affichage fullscreen optimisé
+        st.markdown(f"""
+        <div style="text-align: center; width: 100%; height: 80vh; overflow: auto;">
+            <img src="data:image/png;base64,{img_b64}" 
+                 style="max-width: 100%; height: auto; box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Informations en bas
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("Page", f"{page_number}/{len(doc)}")
+        with col2:
+            st.metric("Résolution", f"{pix.width}x{pix.height}")
+        with col3:
+            with open(file_path, "rb") as pdf_file:
+                st.download_button(
+                    "⬇️ Télécharger PDF",
+                    data=pdf_file.read(),
+                    file_name=os.path.basename(file_path),
+                    mime="application/pdf"
+                )
+        
+        doc.close()
+    
+    show_pdf()
+
+
+def display_inline_pdf_excerpt(file_path, page_number, source_id):
+    """Affiche un extrait du PDF directement dans l'interface"""
+    try:
+        # Importer PyMuPDF (fitz) avec gestion d'erreur
+        try:
+            import fitz  # PyMuPDF
+        except ImportError:
+            st.error("PyMuPDF n'est pas installé. Exécutez: pip install PyMuPDF")
+            return
+        
+        # Vérifier que le fichier existe
+        if not os.path.exists(file_path):
+            st.error(f"Fichier non trouvé : {file_path}")
+            return
+            
+        # Ouvrir le PDF et extraire la page spécifique
+        doc = fitz.open(file_path)
+        
+        if page_number > len(doc):
+            st.error(f"Page {page_number} non trouvée (PDF a {len(doc)} pages)")
+            doc.close()
+            return
+            
+        page = doc[page_number - 1]  # Les pages sont indexées à partir de 0
+        
+        # Convertir la page en image avec une résolution plus élevée
+        pix = page.get_pixmap(matrix=fitz.Matrix(2.0, 2.0))  # Zoom 2x pour meilleure qualité
+        img_data = pix.tobytes("png")
+        
+        # Encoder en base64
+        img_b64 = base64.b64encode(img_data).decode()
+        
+        # Afficher avec un expander
+        with st.expander(f"Aperçu - {os.path.basename(file_path)} - Page {page_number}", expanded=True):
+            # Afficher l'image de la page
+            st.markdown(f'''
+            <div style="text-align: center; margin: 10px 0;">
+                <img src="data:image/png;base64,{img_b64}" 
+                     style="width: 100%; max-width: 700px; border: 2px solid #e0e0e0; border-radius: 12px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+            </div>
+            ''', unsafe_allow_html=True)
+            
+            # Informations sur le document
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.info(f"**Page:** {page_number}/{len(doc)}")
+            with col2:
+                st.info(f"**Taille:** {pix.width}x{pix.height} px")
+            with col3:
+                # Bouton pour télécharger le PDF complet
+                with open(file_path, "rb") as pdf_file:
+                    st.download_button(
+                        "Télécharger PDF",
+                        data=pdf_file.read(),
+                        file_name=os.path.basename(file_path),
+                        mime="application/pdf",
+                        key=f"download_pdf_{source_id}",
+                        help="Télécharger le document PDF complet"
+                    )
+        
+        doc.close()
+        
+    except Exception as e:
+        st.error(f"Impossible d'afficher l'aperçu PDF : {e}")
+        # Afficher les détails de l'erreur en mode développement
+        with st.expander("Détails de l'erreur", expanded=False):
+            st.exception(e)
+
+
+def display_sources(sources, t, compact=False):
+    """Affiche les sources avec un design moderne et subtil"""
+    if not sources:
+        st.warning("Aucune source disponible")
+        return
+    
+    # Affichage silencieux (pas de debug dans l'UI)
+    
+    # Statistiques des sources
+    total_sources = len(sources)
+    unique_regs = len(set(source.get('regulation', 'Unknown') for source in sources))
+    
+    # En-tête avec statistiques
+    header_text = f"📚 {total_sources} source{'s' if total_sources > 1 else ''}"
+    if unique_regs > 1:
+        header_text += f" • {unique_regs} réglementations"
+    
+    with st.expander(header_text, expanded=False):
+        # Mode compact pour affichage dans l'historique
+        if compact and total_sources > 3:
+            st.info(f"Affichage des 3 premières sources sur {total_sources} total(es)")
+            display_sources = sources[:3]
+        else:
+            display_sources = sources
+        
+        # Organisation par réglementation
+        sources_by_reg = {}
+        for source in display_sources:
+            reg = source.get('regulation', 'Réglementation inconnue')
+            if reg not in sources_by_reg:
+                sources_by_reg[reg] = []
+            sources_by_reg[reg].append(source)
+        
+        # Affichage groupé par réglementation
+        for reg_name, reg_sources in sources_by_reg.items():
+            if len(sources_by_reg) > 1:
+                st.markdown(f"**📋 {reg_name}**")
+            
+            # Colonnes pour affichage en grille
+            if len(reg_sources) > 1:
+                cols = st.columns(min(2, len(reg_sources)))
+                for idx, source in enumerate(reg_sources):
+                    with cols[idx % 2]:
+                        _render_source_card_minimal(source, idx + 1)
+            else:
+                _render_source_card_minimal(reg_sources[0], 1)
+            
+            if len(sources_by_reg) > 1:
+                st.divider()
+        
+        # Lien pour voir toutes les sources si mode compact
+        if compact and total_sources > 3:
+            st.caption("💡 Sources complètes disponibles dans la réponse générée")
+
+
+def _render_source_card(source, index):
+    """Rend une carte de source individuelle avec design moderne"""
+    import html
+    
+    regulation = source.get('regulation', 'Réglementation')
+    section = source.get('section', 'Section inconnue') 
+    pages = source.get('pages', 'Page inconnue')
+    document_name = source.get('document_name', source.get('document', 'Document inconnu'))
+    source_link = source.get('source_link', '')
+    confidence = source.get('confidence', 0)
+    
+    # Nettoyer et échapper le texte pour éviter les problèmes HTML
+    regulation = html.escape(str(regulation))
+    section = html.escape(str(section))
+    pages = html.escape(str(pages))
+    document_name = html.escape(str(document_name))
+    
+    # Couleur du badge de confiance
+    if confidence >= 0.8:
+        confidence_color = "#2ecc71"  # Vert
+        confidence_label = "Haute"
+    elif confidence >= 0.6:
+        confidence_color = "#f39c12"  # Orange
+        confidence_label = "Moyenne"
+    else:
+        confidence_color = "#e74c3c"  # Rouge
+        confidence_label = "Faible"
+    
+    # Utiliser une approche plus simple avec les composants Streamlit natifs
+    with st.container():
+        # En-tête avec badge de confiance
+        col_header, col_badge = st.columns([4, 1])
+        
+        with col_header:
             st.markdown(f"""
-            <div class="source-citation">
-                <strong>Source {i+1}:</strong> {source.get('regulation', 'Réglementation')}, Section {source.get('section', 'Section inconnue')} (Pages {source.get('pages', 'Page inconnue')})
-                <div style="margin-top: 5px; font-style: italic;">{source.get('text', '')}</div>
+            <div style="
+                background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(248, 249, 250, 0.95));
+                border: 1px solid rgba(230, 230, 230, 0.8);
+                border-radius: 12px 12px 0 0;
+                padding: 12px 16px;
+                margin-bottom: 0;
+            ">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                    <span style="
+                        background: linear-gradient(90deg, #3498db, #2980b9);
+                        color: white;
+                        padding: 4px 10px;
+                        border-radius: 12px;
+                        font-size: 12px;
+                        font-weight: 700;
+                    ">#{index}</span>
+                    <strong style="color: #2c3e50; font-size: 14px;">{regulation}</strong>
+                </div>
+                <div style="color: #7f8c8d; font-size: 12px;">
+                    📄 {section} • 📍 {pages}
+                </div>
             </div>
             """, unsafe_allow_html=True)
+        
+        with col_badge:
+            st.markdown(f"""
+            <div style="text-align: right; padding: 12px 0;">
+                <span style="
+                    background: {confidence_color};
+                    color: white;
+                    padding: 4px 8px;
+                    border-radius: 20px;
+                    font-size: 10px;
+                    font-weight: 600;
+                    text-transform: uppercase;
+                ">{confidence_label}</span>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        # Lien vers le document avec bouton d'ouverture
+        if source_link:
+            # Extraire le chemin du fichier depuis le source_link
+            file_path = source_link.replace('file:///', '').split('#')[0]
+            file_path = file_path.replace('%20', ' ')  # Décoder les espaces
+            import urllib.parse
+            file_path = urllib.parse.unquote(file_path)
+            
+            # Créer des colonnes pour les boutons
+            col1, col2 = st.columns([3, 1])
+            
+            with col1:
+                st.markdown(f"""
+                <div style="
+                    background: rgba(52, 152, 219, 0.04);
+                    border: 1px solid rgba(230, 230, 230, 0.8);
+                    border-radius: 8px;
+                    padding: 12px;
+                    margin-top: 0;
+                    border-left: 4px solid #3498db;
+                ">
+                    <div style="
+                        color: #2c3e50;
+                        font-size: 13px;
+                        line-height: 1.6;
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                    ">
+                        <span style="
+                            background: linear-gradient(90deg, #27ae60, #2ecc71);
+                            color: white;
+                            padding: 4px 8px;
+                            border-radius: 12px;
+                            font-size: 10px;
+                            font-weight: 600;
+                            text-transform: uppercase;
+                        ">📄</span>
+                        <span style="font-weight: 500;">{document_name}</span>
+                        <span style="color: #7f8c8d; font-size: 11px;">• Page {pages}</span>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            with col2:
+                # Debug UI supprimé
+                
+                # Bouton pour aperçu PDF
+                if st.button(f"Aperçu", key=f"preview_pdf_{index}", help=f"Aperçu de {document_name}"):
+                    st.write("Bouton Aperçu cliqué!")
+                    try:
+                        if os.path.exists(file_path):
+                            display_inline_pdf_excerpt(file_path, source.get('page', 1), index)
+                        else:
+                            st.error(f"Fichier non trouvé : {file_path}")
+                    except Exception as e:
+                        st.error(f"Erreur d'aperçu : {str(e)}")
+                
+                # Bouton secondaire pour ouvrir le fichier (fallback)
+                if st.button(f"Ouvrir", key=f"open_file_{index}", help=f"Ouvrir {document_name} dans l'application par défaut"):
+                    try:
+                        import subprocess
+                        import platform
+                        
+                        # Vérifier que le fichier existe
+                        if os.path.exists(file_path):
+                            # Ouvrir selon le système d'exploitation
+                            if platform.system() == "Windows":
+                                subprocess.run(["start", file_path], shell=True, check=True)
+                            elif platform.system() == "Darwin":  # macOS
+                                subprocess.run(["open", file_path], check=True)
+                            else:  # Linux
+                                subprocess.run(["xdg-open", file_path], check=True)
+                            
+                            st.success(f"Ouverture de {document_name}")
+                        else:
+                            st.error(f"Fichier non trouvé : {file_path}")
+                                
+                    except Exception as e:
+                        st.error(f"Erreur d'ouverture : {str(e)}")
+                        # Bouton de fallback pour copier le lien
+                        if st.button(f"Copier le lien", key=f"copy_link_error_{index}"):
+                            st.code(source_link)
+                            st.info("Copiez ce lien dans votre navigateur")
+        else:
+            # Fallback si pas de lien disponible
+            st.markdown(f"""
+            <div style="
+                background: rgba(243, 156, 18, 0.04);
+                border: 1px solid rgba(230, 230, 230, 0.8);
+                border-top: none;
+                border-radius: 0 0 12px 12px;
+                padding: 16px;
+                margin-top: 0;
+                border-left: 4px solid #f39c12;
+            ">
+                <div style="
+                    color: #2c3e50;
+                    font-size: 13px;
+                    line-height: 1.6;
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                ">
+                    <span style="
+                        background: #f39c12;
+                        color: white;
+                        padding: 6px 12px;
+                        border-radius: 20px;
+                        font-size: 11px;
+                        font-weight: 600;
+                        text-transform: uppercase;
+                    ">⚠️ Document</span>
+                    <span style="
+                        color: #7f8c8d;
+                        font-style: italic;
+                        flex: 1;
+                        padding: 8px 12px;
+                        background: rgba(243, 156, 18, 0.1);
+                        border-radius: 8px;
+                        border: 1px solid rgba(243, 156, 18, 0.2);
+                    ">
+                        📄 {document_name} (lien non disponible)
+                    </span>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        # Espacement
+        st.markdown("<div style='margin-bottom: 8px;'></div>", unsafe_allow_html=True)
+
+
+def _render_source_card_minimal(source, index):
+    """Carte de source minimaliste et efficace - Version moderne 2024"""
+    import html
+    
+    document_name = source.get('document_name', source.get('document', 'Document'))
+    pages = source.get('pages', source.get('page', '?'))
+    source_link = source.get('source_link', '')
+    text_preview = source.get('text_preview', source.get('full_text', ''))
+    if not text_preview or not isinstance(text_preview, str):
+        text_preview = "Aperçu du contenu non disponible"
+    elif len(text_preview.strip()) > 80:
+        text_preview = text_preview.strip()[:80] + "..."
+    else:
+        text_preview = text_preview.strip()
+    
+    # Extraire le chemin du fichier
+    file_path = None
+    if source_link:
+        file_path = source_link.replace('file:///', '').split('#')[0]
+        file_path = file_path.replace('%20', ' ')
+        import urllib.parse
+        file_path = urllib.parse.unquote(file_path)
+    
+    # Design minimaliste clean inspiré des standards 2024
+    with st.container():
+        col1, col2 = st.columns([4, 1])
+        
+        with col1:
+            # Design propre avec composants Streamlit natifs
+            with st.container():
+                # Titre du document (en gras)
+                st.markdown(f"**{document_name}**")
+                
+                # Page (plus petit, gris)
+                st.caption(f"Page {pages}")
+                
+                # Aperçu du contenu (italique)
+                if text_preview:
+                    st.markdown(f"*{text_preview}*")
+                else:
+                    st.markdown("*Contenu disponible*")
+                
+                # Ligne de séparation subtile
+                st.markdown("---")
+        
+        with col2:
+            # Bouton unique et efficace
+            if file_path and st.button("👁 Voir", key=f"view_{index}", help="Voir le document"):
+                if os.path.exists(file_path):
+                    display_fullscreen_pdf(file_path, source.get('page', 1), document_name, index)
+                else:
+                    st.error("Document inaccessible")
 
 
 def display_images(images, max_height=300, section_key=None, t=None, config=None):
@@ -192,46 +618,50 @@ def display_tables(tables, t=None):
     """Affiche les tableaux de façon formatée avec détection améliorée"""
     if not tables:
         return
-        
-    st.markdown(f"<h4 style='color: white;'>{t('tables_title') if t else 'Tableaux'}</h4>", unsafe_allow_html=True)
-    st.markdown("""
-    <style>
-    [data-testid="stExpander"] {
-        background-color: white !important;
-        border-radius: 10px !important;
-        padding: 10px !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
     
-    for i, table in enumerate(tables):
-        with st.expander(f"{t('table_label', i+1) if t else f'Tableau {i+1}'}", expanded=False):
-            # Récupérer le contenu du tableau
-            content = table.get('documents', "")
-            
-            # Fonction pour corriger les noms de colonnes dupliqués ou invalides
-            def fix_column_names(columns):
-                if columns is None:
-                    return [f"Col_{i}" for i in range(20)]  # Noms génériques
+    # Statistiques des tableaux
+    total_tables = len(tables)
+    
+    # Encapsuler dans un expander global comme les sources
+    with st.expander(f"📊 {total_tables} tableau{'x' if total_tables > 1 else ''}", expanded=False):
+        st.markdown("""
+        <style>
+        [data-testid="stExpander"] {
+            background-color: white !important;
+            border-radius: 10px !important;
+            padding: 10px !important;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+        
+        for i, table in enumerate(tables):
+            with st.expander(f"{t('table_label', i+1) if t else f'Tableau {i+1}'}", expanded=False):
+                # Récupérer le contenu du tableau
+                content = table.get('documents', "")
                 
-                # Assurer que nous avons une liste
-                cols = list(columns)
-                
-                # Remplacer les None par des noms génériques
-                for i in range(len(cols)):
-                    if cols[i] is None or cols[i] == "":
-                        cols[i] = f"Col_{i}"
-                
-                # Gérer les doublons en ajoutant _1, _2, etc.
-                seen = {}
-                for i in range(len(cols)):
-                    if cols[i] in seen:
-                        seen[cols[i]] += 1
-                        cols[i] = f"{cols[i]}_{seen[cols[i]]}"
-                    else:
-                        seen[cols[i]] = 0
-                
-                return cols
+                # Fonction pour corriger les noms de colonnes dupliqués ou invalides
+                def fix_column_names(columns):
+                    if columns is None:
+                        return [f"Col_{i}" for i in range(20)]  # Noms génériques
+                    
+                    # Assurer que nous avons une liste
+                    cols = list(columns)
+                    
+                    # Remplacer les None par des noms génériques
+                    for i in range(len(cols)):
+                        if cols[i] is None or cols[i] == "":
+                            cols[i] = f"Col_{i}"
+                    
+                    # Gérer les doublons en ajoutant _1, _2, etc.
+                    seen = {}
+                    for i in range(len(cols)):
+                        if cols[i] in seen:
+                            seen[cols[i]] += 1
+                            cols[i] = f"{cols[i]}_{seen[cols[i]]}"
+                        else:
+                            seen[cols[i]] = 0
+                    
+                    return cols
             
             # Étape 1: Essayer d'extraire un tableau du texte
             if isinstance(content, str):
@@ -322,14 +752,17 @@ def stream_assistant_response(orchestrator, query, settings, t):
             chunk_content = chunk.get("content", "")
             
             if chunk_type == "analysis":
-                # Afficher l'analyse
+                # Afficher l'analyse avec le nouveau badge intelligent
+                from assistant_regulation.app.streamlit_utils import get_intelligent_routing_badge
                 analysis_data = chunk_content
-                needs_rag = chunk_content.get("needs_rag", False)
-                mode_text = t("mode_rag") if needs_rag else t("mode_direct")
+                routing_decision = chunk_content.get("routing_decision", {})
+                mode_badge = get_intelligent_routing_badge(analysis_data, routing_decision)
+                confidence = chunk_content.get('confidence', 0)
+                
                 analysis_placeholder.markdown(f"""
                 <div style="padding: 10px; border-radius: 5px; background-color: #e8f4f8;">
-                    <strong>{t('mode_used')}:</strong> {mode_text} | 
-                    <strong>{t('confidence')}:</strong> {chunk_content.get('confidence', 0):.2f}
+                    <strong>Mode utilisé:</strong> {mode_badge} | 
+                    <strong>Confiance:</strong> {confidence:.2f}
                 </div>
                 """, unsafe_allow_html=True)
             
@@ -368,10 +801,11 @@ def stream_assistant_response(orchestrator, query, settings, t):
                 
                 # Afficher la réponse dans le container avec un style
                 with response_container.container():
-                    if analysis_data and analysis_data.get("needs_rag", False):
-                        mode_badge = f'<span class="badge badge-blue">{t("mode_rag")}</span>'
-                    else:
-                        mode_badge = f'<span class="badge badge-green">{t("mode_direct")}</span>'
+                    from assistant_regulation.app.streamlit_utils import get_intelligent_routing_badge
+                    # Pour les chunks "text", chunk_content est une string, pas un dict
+                    # Les données de routage sont dans analysis_data
+                    routing_decision = analysis_data.get("routing_decision", {}) if isinstance(analysis_data, dict) else {}
+                    mode_badge = get_intelligent_routing_badge(analysis_data, routing_decision)
                     
                     st.markdown(f"""
                     <div class="assistant-message">
@@ -391,12 +825,11 @@ def stream_assistant_response(orchestrator, query, settings, t):
                 return None
             
             elif chunk_type == "done":
-                # Finaliser l'affichage sans le curseur
+                # Finaliser l'affichage sans le curseur  
                 with response_container.container():
-                    if analysis_data and analysis_data.get("needs_rag", False):
-                        mode_badge = f'<span class="badge badge-blue">{t("mode_rag")}</span>'
-                    else:
-                        mode_badge = f'<span class="badge badge-green">{t("mode_direct")}</span>'
+                    from assistant_regulation.app.streamlit_utils import get_intelligent_routing_badge
+                    routing_decision = chunk_content.get("routing_decision", {})
+                    mode_badge = get_intelligent_routing_badge(analysis_data, routing_decision)
                     
                     st.markdown(f"""
                     <div class="assistant-message">
@@ -415,9 +848,14 @@ def stream_assistant_response(orchestrator, query, settings, t):
         analysis_placeholder.empty()
         
         # Retourner les données finales
+        routing_decision = None
+        if analysis_data:
+            routing_decision = analysis_data.get("routing_decision", {})
+        
         return {
             "response": response_text,
             "analysis": analysis_data,
+            "routing_decision": routing_decision,
             "images": images,
             "tables": tables,
             "sources": sources
@@ -441,12 +879,15 @@ def display_assistant_response(response_data, query, t):
     timestamp = response_data.get("timestamp", get_current_time())
     content = response_data.get("content", "")
     
-    # Afficher un badge indiquant le mode de réponse
+    # Afficher un badge intelligent indiquant le mode de réponse
+    from assistant_regulation.app.streamlit_utils import get_intelligent_routing_badge
+    routing_decision = response_data.get("routing_decision", {})
+    mode_badge = get_intelligent_routing_badge(analysis, routing_decision)
+    
+    # Garder les explications pour compatibilité
     if needs_rag:
-        mode_badge = f'<span class="badge badge-blue">{t("mode_rag")}</span>'
         mode_explanation = t("explanation_rag")
     else:
-        mode_badge = f'<span class="badge badge-green">{t("mode_direct")}</span>'
         mode_explanation = t("explanation_direct")
     
     # Afficher le message avec le badge de mode

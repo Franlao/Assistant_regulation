@@ -80,12 +80,11 @@ class LanguageHandler:
             except:
                 pass
             
-            # Si toutes les tentatives échouent, retourner la question originale
-            print("Échec de la traduction - retour du texte original")
+            # Si toutes les tentatives échouent, retourner la question originale (silencieux)
             return query
             
         except Exception as e:
-            print(f"Erreur lors du traitement de la langue: {str(e)}")
+            # Erreur silencieuse
             return query
 
 # On applique un LRU cache (taille 512) pour mémoïser les traductions identiques

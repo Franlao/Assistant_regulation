@@ -11,8 +11,8 @@ import numpy as np
 
 load_dotenv()
 
-# Configuration logging
-logging.basicConfig(level=logging.INFO)
+# Configuration logging (moins verbeux par défaut)
+logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
 
 class EnhancedImageDescriber:

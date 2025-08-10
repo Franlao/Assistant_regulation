@@ -6,8 +6,8 @@ import base64
 import os
 import logging
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
+# Configure logging (moins verbeux par défaut)
+logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
 
 class ImageDisplayAgent:

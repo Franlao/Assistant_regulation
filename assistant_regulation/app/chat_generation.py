@@ -39,14 +39,17 @@ def stream_assistant_response(orchestrator, query, settings):
             chunk_content = chunk.get("content", "")
             
             if chunk_type == "analysis":
-                # Afficher l'analyse
+                # Afficher l'analyse avec le nouveau badge intelligent
+                from assistant_regulation.app.streamlit_utils import get_intelligent_routing_badge
                 analysis_data = chunk_content
-                needs_rag = chunk_content.get("needs_rag", False)
-                mode_text = "Mode RAG" if needs_rag else "Mode Direct"
+                routing_decision = chunk_content.get("routing_decision", {})
+                mode_badge = get_intelligent_routing_badge(analysis_data, routing_decision)
+                confidence = chunk_content.get('confidence', 0)
+                
                 analysis_placeholder.markdown(f"""
                 <div style="padding: 10px; border-radius: 5px; background-color: #e8f4f8;">
-                    <strong>Mode utilisé:</strong> {mode_text} | 
-                    <strong>Confiance:</strong> {chunk_content.get('confidence', 0):.2f}
+                    <strong>Mode utilisé:</strong> {mode_badge} | 
+                    <strong>Confiance:</strong> {confidence:.2f}
                 </div>
                 """, unsafe_allow_html=True)
             

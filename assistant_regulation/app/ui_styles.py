@@ -34,6 +34,27 @@ def add_bg_from_local(image_file):
         font-family: 'Roboto', sans-serif;
     }}
 
+    /* Masquer la navigation multipage par défaut au-dessus du logo,
+       mais conserver l'entête pour garder le bouton de repli/extension */
+    [data-testid="stSidebarNav"] {{ display: none !important; }}
+    
+    /* Réduire l'espace en haut de la sidebar */
+    [data-testid="stSidebarHeader"] {{
+        height: auto !important;
+        min-height: 0 !important;
+        padding: 0 !important;
+    }}
+    
+    /* Ajuster le contenu de la sidebar pour qu'il soit plus haut */
+    [data-testid="stSidebarContent"] {{
+        padding-top: 1rem !important;
+    }}
+    
+    /* Positionner le bouton de repli/extension */
+    [data-testid="stSidebarCollapsedControl"] {{
+        top: 0.5rem !important;
+    }}
+
     /* Style du logo */
     .sidebar-logo {{
         border-radius: 50%;
@@ -200,18 +221,108 @@ def load_main_css():
             color: white;
         }
         
+        .badge-purple {
+            background-color: #9b59b6;
+            color: white;
+        }
+        
+        .badge-gray {
+            background-color: #6c757d;
+            color: white;
+        }
+        
         .badge-orange {
             background-color: #fff3cd;
             color: #fd7e14;
         }
         
-        /* Source citation */
+        /* Source citation moderne */
         .source-citation {
-            background-color: #f8f9fa;
-            border-left: 3px solid #6c757d;
-            padding: 8px 12px;
-            margin: 5px 0;
-            font-size: 0.9em;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(248, 249, 250, 0.95));
+            border: 1px solid rgba(230, 230, 230, 0.8);
+            border-radius: 12px;
+            padding: 16px;
+            margin: 8px 0;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .source-citation:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transform: translateY(-1px);
+        }
+        
+        /* Badges de confiance pour sources */
+        .confidence-badge {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            padding: 4px 8px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: white;
+        }
+        
+        .confidence-high { background: #2ecc71; }
+        .confidence-medium { background: #f39c12; }
+        .confidence-low { background: #e74c3c; }
+        
+        /* En-tête de source */
+        .source-header {
+            color: #2c3e50;
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .source-index {
+            background: linear-gradient(90deg, #3498db, #2980b9);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 700;
+        }
+        
+        /* Métadonnées de source */
+        .source-meta {
+            color: #7f8c8d;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+        
+        /* Contenu de source */
+        .source-content {
+            color: #2c3e50;
+            font-size: 13px;
+            line-height: 1.5;
+            border-left: 3px solid #3498db;
+            padding: 10px 12px;
+            margin: 8px 0;
+            background: rgba(52, 152, 219, 0.04);
+            border-radius: 0 6px 6px 0;
+            font-style: italic;
+        }
+        
+        /* Ligne décorative */
+        .source-decoration {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #3498db, transparent);
         }
         
         /* Image container */

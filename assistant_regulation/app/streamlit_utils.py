@@ -15,6 +15,82 @@ def get_current_time():
     return datetime.now().strftime("%H:%M:%S")
 
 
+def get_intelligent_routing_badge(analysis: Optional[Dict], routing_decision: Optional[Dict] = None) -> str:
+    """
+    Génère un badge intelligent basé sur le nouveau système de routage du ModularOrchestrator.
+    
+    Args:
+        analysis: Données d'analyse de la requête
+        routing_decision: Décision de routage du MasterRoutingService
+    
+    Returns:
+        Badge HTML formaté
+    """
+    if not analysis and not routing_decision:
+        return '<span class="badge badge-gray">Mode Inconnu</span>'
+    
+    # Extraire les informations de routage
+    strategy = None
+    search_type = None
+    confidence = 0.5
+    
+    if routing_decision:
+        strategy = routing_decision.get("response_strategy", "").replace("_", " ").title()
+        confidence = routing_decision.get("confidence_score", 0.5)
+        search_config = routing_decision.get("search_config", {})
+        if search_config:
+            search_type = search_config.get("search_type", "").replace("_", " ").title()
+    
+    if analysis:
+        # Fallback vers l'ancienne logique si pas de routing_decision
+        if not strategy:
+            needs_rag = analysis.get("needs_rag", False)
+            strategy = "Vector Search" if needs_rag else "Direct Llm"
+        confidence = max(confidence, analysis.get("confidence", 0.5))
+    
+    # Définir les couleurs et icônes selon la stratégie (ASCII uniquement)
+    if "Direct" in strategy:
+        color_class = "badge-green"
+        icon = "•"
+        label = "Direct LLM"
+        tooltip = "Réponse directe basée sur les connaissances générales du modèle"
+    elif "Vector" in strategy:
+        color_class = "badge-blue" 
+        icon = "?"
+        if search_type:
+            if "By Regulation" in search_type:
+                label = "RAG Ciblé"
+                tooltip = f"Recherche ciblée dans une réglementation spécifique"
+            elif "Full Regulation" in search_type:
+                label = "RAG Complet"
+                tooltip = "Récupération complète d'une réglementation pour résumé"
+            elif "Comparative" in search_type:
+                label = "RAG Comparatif"
+                tooltip = "Comparaison entre plusieurs réglementations"
+            else:
+                label = "RAG Classique"
+                tooltip = "Recherche générale dans toutes les réglementations"
+        else:
+            label = "Mode RAG"
+            tooltip = "Recherche dans la base vectorielle de réglementations"
+    elif "Hybrid" in strategy:
+        color_class = "badge-purple"
+        icon = "*"
+        label = "Mode Hybride"
+        tooltip = "Combinaison de recherche vectorielle et connaissances générales"
+    else:
+        color_class = "badge-gray"
+        icon = "?"
+        label = "Mode Inconnu"
+        tooltip = "Type de routage non identifié"
+    
+    # Formatage de la confiance
+    confidence_pct = int(confidence * 100)
+    confidence_text = f" ({confidence_pct}%)" if confidence_pct > 0 else ""
+    
+    return f'<span class="badge {color_class}" title="{tooltip}">{icon} {label}{confidence_text}</span>'
+
+
 def add_bg_from_local(image_file):
     """Ajoute un arrière-plan à partir d'un fichier local"""
     with open(image_file, "rb") as file:
@@ -375,16 +451,25 @@ def extract_table_from_text(text):
         try:
             # Essayer de reconstruire la structure de liste
             table_str = "[[" + matches[0] + "]]"
-            # Évaluer de façon sécurisée la chaîne en structure Python
-            table_data = ast.literal_eval(table_str)
             
-            # Convertir en DataFrame
-            if isinstance(table_data, list) and all(isinstance(row, list) for row in table_data):
-                if len(table_data) > 1:  # S'assurer qu'il y a au moins un en-tête et une ligne
-                    columns = ensure_valid_column_names(table_data[0] if table_data[0] else None)
-                    return pd.DataFrame(table_data[1:], columns=columns)
-        except Exception as e:
-            print(f"Erreur lors de l'extraction du tableau (cas 1): {e}")
+            # Nettoyer la chaîne avant l'évaluation
+            table_str = table_str.replace('null', 'None')  # JSON null -> Python None
+            
+            # Vérifier que la chaîne ressemble à du Python valide avant ast.literal_eval
+            if not any(char in table_str for char in ['<', '>', 'object', 'ast.Name']):
+                # Évaluer de façon sécurisée la chaîne en structure Python
+                table_data = ast.literal_eval(table_str)
+                
+                # Convertir en DataFrame
+                if isinstance(table_data, list) and all(isinstance(row, list) for row in table_data):
+                    if len(table_data) > 1:  # S'assurer qu'il y a au moins un en-tête et une ligne
+                        columns = ensure_valid_column_names(table_data[0] if table_data[0] else None)
+                        return pd.DataFrame(table_data[1:], columns=columns)
+        except (ValueError, SyntaxError, TypeError):
+            # Ignorer silencieusement les erreurs AST - pas besoin de les afficher
+            pass
+        except Exception:
+            # Ignorer toutes les autres erreurs d'extraction de tableau
             pass
     
     # Cas 2: Tableau avec format plus complexe (plusieurs blocs)
@@ -401,8 +486,8 @@ def extract_table_from_text(text):
             if all_rows and len(all_rows) > 1:  # S'assurer qu'il y a au moins un en-tête et une ligne
                 columns = ensure_valid_column_names(all_rows[0] if all_rows[0] else None)
                 return pd.DataFrame(all_rows[1:], columns=columns)
-        except Exception as e:
-            print(f"Erreur lors de l'extraction du tableau (cas 2): {e}")
+        except Exception:
+            # Erreur silencieuse lors de l'extraction du tableau (cas 2)
             pass
     
     # Cas 3: Tableau formaté en texte avec espaces ou pipes
@@ -433,8 +518,8 @@ def extract_table_from_text(text):
                     
                     columns = ensure_valid_column_names(rows[0])
                     return pd.DataFrame(rows[1:], columns=columns)
-            except Exception as e:
-                print(f"Erreur lors de l'extraction du tableau (cas 3): {e}")
+            except Exception:
+                # Erreur silencieuse lors de l'extraction du tableau (cas 3)
                 pass
     
     # Si aucun tableau n'a pu être extrait, retourner None

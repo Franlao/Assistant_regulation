@@ -56,5 +56,6 @@ class ResultCache:
         try:
             with open(file_path, 'wb') as f:
                 pickle.dump(result, f)
-        except Exception as e:
-            print(f"Erreur lors de la mise en cache: {str(e)}")
+        except Exception:
+            # Erreur silencieuse lors de la mise en cache
+            pass

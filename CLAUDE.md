@@ -2,132 +2,165 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Recent Updates
+
+**✅ ModularOrchestrator Integration Complete**
+The application now uses the new `ModularOrchestrator` instead of the deprecated `SimpleOrchestrator` (orchestrator_2). This provides:
+- Better service separation and modularity  
+- Enhanced routing capabilities with intelligent query analysis
+- Improved conversation memory management
+- Full backward compatibility with existing UI components
+
 ## Project Overview
 
-This is an AI-powered regulatory assistant specialized in automotive regulations (UN/ECE standards). The application uses a RAG (Retrieval-Augmented Generation) architecture to answer questions about regulatory documents by combining retrieval from multiple data sources (text, images, tables) with language model generation.
+This is an AI-powered automotive regulatory assistant built with Python and Streamlit. The system uses a RAG (Retrieval-Augmented Generation) architecture to answer questions about UN/ECE automotive regulations by searching through text, images, and tables from regulatory documents.
 
-## Architecture
+## Key Architecture
 
-The codebase follows a modular pattern-based architecture:
+The codebase follows a modular RAG architecture with clear separation of concerns:
 
 ### Core Components
-- **Processing Pattern** (`assistant_regulation/processing/`): Document ingestion, chunking, and embedding
-  - `Modul_Process/`: Text, image, and table chunking with page tracking
-  - `Modul_emb/`: Specialized retrievers for different content types (BaseRetriever, ImageRetriever, TableRetriever, TextRetriever)
-  - `Modul_verif/`: LLM-based verification agent for result relevance
-  - `Modul_Summary/`: Regulatory document summarization with HTML/PDF export
+- **ModularOrchestrator** (`assistant_regulation/planning/Orchestrator/modular_orchestrator.py`): Main orchestration layer that coordinates all services
+- **Retrievers** (`assistant_regulation/processing/Modul_emb/`): Multimodal retrieval system with separate retrievers for text, images, and tables
+- **Services** (`assistant_regulation/planning/services/`): Modular services for retrieval, generation, memory, validation, context building, and routing
+- **Processing Pipeline** (`assistant_regulation/processing/`): Document ingestion, chunking with Late Chunker, and embedding generation
 
-- **Planning Pattern** (`assistant_regulation/planning/`): Orchestration and workflow management
-  - `sync/`: Synchronous orchestrator with conversation memory and caching
-  - `services/`: Modular services (retrieval, generation, validation, routing, etc.)
-  - `langgraph/`: Advanced workflow orchestration (experimental)
+### Service Architecture
+The system uses a service-oriented architecture where each service has a specific responsibility:
+- **RetrievalService**: Handles multimodal search across text/image/table collections
+- **GenerationService**: LLM response generation with multiple provider support (Ollama/Mistral)
+- **MemoryService**: Conversation context and session management
+- **ValidationService**: LLM-based relevance verification of retrieved chunks
+- **ContextBuilderService**: Constructs contextual prompts from retrieved information
+- **RerankerService**: Optional reranking using Jina API
+- **RoutingServices**: Intelligent query routing and analysis
 
-- **App Layer** (`assistant_regulation/app/`): Streamlit UI components
-  - UI styling, chat generation, data extraction, display management
+### Document Processing
+The system uses **chonkie** (Late Chunker) for text chunking, which provides:
+- 15x faster processing than previous Docling solution
+- Global context preservation across chunks
+- Optimal chunking for regulatory documents
+- Better semantic coherence
 
-### Key Features
-- **Multimodal RAG**: Retrieves from text chunks, images, and tables
-- **Conversation Memory**: Tracks context across chat sessions with configurable window size
-- **Intelligent Routing**: Routes queries to appropriate RAG components based on content analysis
-- **Verification Layer**: Optional LLM verification of retrieval relevance before generation
-- **Reranking**: Uses Jina API for result reranking (configurable)
+### Data Flow
+1. PDF documents are processed into chunks (text/images/tables) using Late Chunker and stored in ChromaDB
+2. User queries are analyzed and routed to appropriate retrievers
+3. Retrieved context is validated, reranked, and used to build prompts
+4. LLM generates responses with conversation memory integration
 
-## Development Commands
+## Common Development Commands
 
-### Running the Application
+### Application Startup
 ```bash
-# Start Streamlit app
+# Start the Streamlit application
 streamlit run app.py
 
-# Alternative: Start with environment variables
-python -m streamlit run app.py
+# The application will be available at http://localhost:8501
 ```
 
-### Database Initialization
+### Document Processing
 ```bash
-# Initialize vector databases with PDF documents
-python -c "from assistant_regulation.processing.process_regulations import process_pdf_directory; process_pdf_directory('./Data')"
+# Initialize vector databases from PDF documents
+python -c "from assistant_regulation.processing.process_regulations import process_regulation_document; process_regulation_document('./Data')"
+
+# Regenerate chunks from scratch (text only for faster processing)
+python -m assistant_regulation.processing.process_regulations --regenerate --text-only
+
+# Regenerate all chunks (including images and tables)
+python -m assistant_regulation.processing.process_regulations --regenerate
+
+# Parallel chunk generation (faster, recommended)
+python -m assistant_regulation.processing.process_regulations --regenerate-parallel --workers 4
+
+# Clean database collections only
+python -m assistant_regulation.processing.process_regulations --clean-only
+
+# Test environment before processing
+python -m assistant_regulation.processing.process_regulations --test
 ```
 
-### Testing
+### Configuration Testing
 ```bash
-# Run tests (if pytest is configured)
-pytest
-
-# Manual testing of configuration
+# Test configuration system
 python config/config.py
 ```
 
-### Requirements Management
+### Development Notebooks
 ```bash
-# Install dependencies
-pip install -r requirements.txt
-
-# For development with additional tools
-pip install pytest pytest-asyncio httpx
+# Launch Jupyter for development notebooks
+jupyter notebook notebooks/
 ```
 
-## Configuration
+## Configuration System
 
-The application uses a centralized configuration system in `config/config.py`:
+The application uses a centralized configuration system:
+- **Main config**: `config/config.json` - Auto-generated configuration file
+- **Config classes**: `config/config.py` - Dataclass-based configuration management
+- **Environment variables**: Support for `.env` file and environment overrides
 
-- **LLM Configuration**: Supports Ollama and Mistral AI providers
-- **RAG Configuration**: Confidence thresholds, verification settings, force keywords
-- **Memory Configuration**: Conversation window size, session timeout
-- **UI Configuration**: Language support (FR/EN), themes, display limits
-- **Database Configuration**: Vector store paths and search parameters
+Key configuration areas:
+- **LLM providers**: Ollama (local) and Mistral AI (cloud) support
+- **RAG settings**: Confidence thresholds, multimodal options, caching
+- **Memory management**: Conversation window size and retention
+- **UI preferences**: Language, themes, display limits
 
-Configuration can be:
-1. Modified in `config/config.json` (auto-generated on first run)
-2. Overridden via environment variables
-3. Accessed programmatically via `get_config()` singleton
+## Dependencies and Requirements
 
-## Key Environment Variables
+The project uses modern Python libraries:
+- **Core**: `streamlit`, `langchain`, `chromadb`, `sentence-transformers`
+- **Document processing**: `PyMuPDF`, `chonkie`, `pdfplumber` 
+- **LLM providers**: `ollama`, `mistralai`
+- **Performance**: `joblib` caching, `psutil` monitoring
+- **Export**: `reportlab`, `weasyprint`, `python-docx`
 
+### Installation Note
+The chunking system requires chonkie with streamlit support:
 ```bash
-# API Keys
-JINA_API_KEY=your_jina_api_key  # For reranking service
-MISTRAL_API_KEY=your_mistral_key  # If using Mistral AI
-
-# Optional overrides
-STREAMLIT_SERVER_TIMEOUT=300
+pip install 'chonkie[st]'
 ```
 
-## Data Structure
+## Database and Storage
 
-```
-Data/                           # PDF regulatory documents
-data/vectorstores/             # Vector databases (auto-created)
-  ├── text_chunks/
-  ├── image_chunks/
-  └── table_chunks/
-description_cache/             # Cached image descriptions
-.conversation_memory/          # Chat session storage
-joblib_cache/                  # Processing cache
-```
+- **Vector stores**: ChromaDB collections for text/image/table chunks
+- **Caching**: Joblib cache in `./joblib_cache/` for retrieval optimization  
+- **Memory**: Conversation memory stored in `.conversation_memory/`
+- **Logs**: Application logs in `logs/` directory
+- **Data**: PDF documents in `Data/` directory, processed chunks cached as `.pkl` files
 
-## Key Classes and Entry Points
+## Development Patterns
 
-- **SimpleOrchestrator** (`assistant_regulation.planning.sync.orchestrator_2`): Main orchestration engine
-- **AppConfig** (`config.config`): Centralized configuration management
-- **BaseRetriever, ImageRetriever, TableRetriever, TextRetriever**: Content retrieval engines
-- **ConversationMemory**: Session management and context tracking
+### Adding New Services
+Services follow a consistent pattern with dependency injection through the ModularOrchestrator. New services should:
+1. Implement their core functionality as standalone classes
+2. Accept LLM provider/model configuration in constructor
+3. Be injected into ModularOrchestrator and passed to QueryProcessor
 
-## Development Notes
+### Text Chunking with Late Chunker
+The system uses `LateChunkerRegulation` class which wraps chonkie's Late Chunker:
+- Preserves global context across the entire document
+- Optimal for regulatory documents with cross-references
+- Provides enhanced metadata including content analysis and quality scores
+- Use `hybrid_chunk_document()` function for compatibility with existing code
 
-- The codebase uses Python dataclasses extensively for configuration
-- Streamlit components are modularized for reusability
-- Cache management uses joblib for performance optimization
-- Image processing leverages PyMuPDF and Pillow
-- LLM integration supports both local (Ollama) and cloud (Mistral) providers
-- The system includes comprehensive error handling and logging
+### Memory Management
+The system uses conversation memory with configurable window sizes. Memory is automatically summarized when conversations exceed the configured length.
 
-## Document Processing Pipeline
+### Error Handling
+All services include comprehensive error handling and logging. The processing pipeline has retry logic and graceful degradation for failed operations.
 
-1. **Ingestion**: PDFs are processed using PyMuPDF and pdfplumber
-2. **Chunking**: Documents split into text, image, and table chunks with page tracking
-3. **Embedding**: Each chunk type uses specialized embedding strategies
-4. **Storage**: Vector stores created using ChromaDB
-5. **Retrieval**: Multi-modal search across all content types
-6. **Verification**: Optional LLM verification of relevance
-7. **Generation**: Context-aware response generation with source citations
+### Multimodal RAG
+The system supports three retrieval modes that can be enabled/disabled:
+- Text chunks from document content (using Late Chunker)
+- Image chunks with AI-generated descriptions
+- Table chunks with structured data extraction
+
+## Important File Locations
+
+- **Main entry**: `app.py` - Streamlit application entry point
+- **Orchestrator**: `assistant_regulation/planning/Orchestrator/modular_orchestrator.py`
+- **Services**: `assistant_regulation/planning/services/`
+- **Processing**: `assistant_regulation/processing/process_regulations.py`
+- **Text Chunking**: `assistant_regulation/processing/Modul_Process/chunking_text.py` (Late Chunker implementation)
+- **Configuration**: `config/config.py` and `config/config.json`
+- **UI Components**: `assistant_regulation/app/`
+- **Translations**: `translations/` for multilingual support

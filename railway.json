@@ -1,0 +1,53 @@
+{
+  "$schema": "https://railway.app/railway.schema.json",
+  "build": {
+    "builder": "DOCKERFILE",
+    "buildCommand": "echo 'Building with Docker...'",
+    "watchPatterns": [
+      "**/*.py",
+      "requirements.txt",
+      "config/**/*",
+      "assistant_regulation/**/*"
+    ]
+  },
+  "deploy": {
+    "startCommand": "streamlit run app.py --server.port=$PORT --server.address=0.0.0.0 --server.headless=true --server.enableCORS=false --server.enableXsrfProtection=false",
+    "healthcheckPath": "/_stcore/health",
+    "healthcheckTimeout": 300,
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 3
+  },
+  "environments": {
+    "production": {
+      "variables": {
+        "PYTHONUNBUFFERED": "1",
+        "STREAMLIT_SERVER_TIMEOUT": "300",
+        "STREAMLIT_SERVER_PORT": "$PORT",
+        "STREAMLIT_SERVER_ADDRESS": "0.0.0.0",
+        "STREAMLIT_SERVER_HEADLESS": "true",
+        "STREAMLIT_SERVER_ENABLE_CORS": "false",
+        "STREAMLIT_SERVER_ENABLE_XSRF_PROTECTION": "false",
+        "STREAMLIT_BROWSER_GATHER_USAGE_STATS": "false",
+        "STREAMLIT_GLOBAL_DEVELOPMENT_MODE": "false"
+      }
+    }
+  },
+  "volumes": [
+    {
+      "mountPath": "/app/Data",
+      "name": "data-volume"
+    },
+    {
+      "mountPath": "/app/logs",
+      "name": "logs-volume"
+    },
+    {
+      "mountPath": "/app/joblib_cache",
+      "name": "cache-volume"
+    },
+    {
+      "mountPath": "/app/.conversation_memory",
+      "name": "memory-volume"
+    }
+  ]
+}

@@ -35,7 +35,7 @@
     "session_timeout_hours": 24
   },
   "rag": {
-    "enable_verification": true,
+    "enable_verification": false,
     "use_images": true,
     "use_tables": true,
     "default_top_k": 10,
