@@ -1,11 +1,23 @@
 import chromadb
 from typing import List, Dict
 import numpy as np
-import ollama
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import os
 from functools import lru_cache
+
+# Import conditionnel des providers d'embeddings
+try:
+    import ollama
+    OLLAMA_AVAILABLE = True
+except ImportError:
+    OLLAMA_AVAILABLE = False
+
+try:
+    from chromadb.utils.embedding_functions import MistralEmbeddingFunction
+    MISTRAL_EMBEDDING_AVAILABLE = True
+except ImportError:
+    MISTRAL_EMBEDDING_AVAILABLE = False
 
 # Définir le chemin de la base de données de manière portable
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
@@ -28,15 +40,61 @@ def batch_processing(collection, ids, documents, embeddings, metadatas, batch_si
 class BaseRetriever:
     def __init__(self, collection_name: str):
         self.client = chromadb.PersistentClient(path=CHROMA_DB_PATH)
-        self.collection = self.client.get_or_create_collection(
-            name=collection_name,
-            metadata={"hnsw:space": "cosine"}
-        )
+        
+        # Déterminer le provider d'embeddings
+        self._setup_embedding_provider()
+        
+        # Créer la collection avec la fonction d'embedding appropriée
+        if self.embedding_provider == "mistral" and self.mistral_ef:
+            self.collection = self.client.get_or_create_collection(
+                name=collection_name,
+                embedding_function=self.mistral_ef,
+                metadata={"hnsw:space": "cosine"}
+            )
+        else:
+            self.collection = self.client.get_or_create_collection(
+                name=collection_name,
+                metadata={"hnsw:space": "cosine"}
+            )
+        
         # Initialisation TF-IDF
         self.vectorizer = TfidfVectorizer() 
         self._tfidf_matrix = None  # Cache sparse matrix
         self._doc_ids_cache = []
         self._all_docs_cache = []
+
+    def _setup_embedding_provider(self):
+        """Configure le provider d'embeddings selon l'environnement"""
+        # Priorité : Mistral (production) > Ollama (local) > Fallback
+        mistral_api_key = os.getenv("MISTRAL_API_KEY")
+        
+        if mistral_api_key and MISTRAL_EMBEDDING_AVAILABLE:
+            try:
+                self.mistral_ef = MistralEmbeddingFunction(
+                    api_key=mistral_api_key,
+                    model="mistral-embed"
+                )
+                self.embedding_provider = "mistral"
+                print("Utilisation des embeddings Mistral pour la production")
+                return
+            except Exception as e:
+                print(f"Erreur Mistral embeddings: {e}")
+        
+        if OLLAMA_AVAILABLE:
+            try:
+                # Test de connexion Ollama
+                ollama.list()
+                self.embedding_provider = "ollama"
+                self.mistral_ef = None
+                print("Utilisation des embeddings Ollama pour le développement local")
+                return
+            except Exception as e:
+                print(f"Ollama non disponible: {e}")
+        
+        # Fallback : utiliser ChromaDB par défaut
+        self.embedding_provider = "default"
+        self.mistral_ef = None
+        print("Utilisation des embeddings par défaut ChromaDB")
 
     # ------------------------------------------------------------------
     # Utils de cache
@@ -66,12 +124,39 @@ class BaseRetriever:
 
     def _get_embedding(self, text: str) -> List[float]:
         """Génère les embeddings selon le provider disponible"""
-        @lru_cache(maxsize=1024)
-        def _cached_ollama(prompt: str):
-            resp = ollama.embeddings(model="mxbai-embed-large:latest", prompt=prompt)
-            return tuple(resp["embedding"])  # Tuple pour être hashable
-
-        return list(_cached_ollama(text))
+        
+        if self.embedding_provider == "mistral" and self.mistral_ef:
+            # Utiliser Mistral embeddings directement via ChromaDB
+            try:
+                embeddings = self.mistral_ef([text])
+                return embeddings[0] if embeddings else []
+            except Exception as e:
+                print(f"Erreur Mistral embedding: {e}")
+                # Fallback vers Ollama ou défaut
+        
+        if self.embedding_provider == "ollama" and OLLAMA_AVAILABLE:
+            @lru_cache(maxsize=1024)
+            def _cached_ollama(prompt: str):
+                try:
+                    resp = ollama.embeddings(model="mxbai-embed-large:latest", prompt=prompt)
+                    return tuple(resp["embedding"])  # Tuple pour être hashable
+                except Exception as e:
+                    print(f"Erreur Ollama embedding: {e}")
+                    return tuple([0.0] * 384)  # Embedding par défaut
+            
+            return list(_cached_ollama(text))
+        
+        # Fallback : utiliser sentence-transformers si disponible
+        try:
+            from sentence_transformers import SentenceTransformer
+            if not hasattr(self, '_st_model'):
+                self._st_model = SentenceTransformer('all-MiniLM-L6-v2')
+            return self._st_model.encode([text])[0].tolist()
+        except Exception as e:
+            print(f"Erreur sentence-transformers: {e}")
+            # Dernier recours : embedding aléatoire
+            import random
+            return [random.random() for _ in range(384)]
 
     def _store_data(self, ids: List[str], documents: List[str], embeddings: List[List[float]], metadatas: List[Dict]):
         """Méthode interne pour le stockage générique"""
