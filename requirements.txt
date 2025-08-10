@@ -15,6 +15,7 @@ httpx==0.28.1
 pydantic==2.11.7
 aiofiles==24.1.0
 langdetect==1.0.9
+deep-translator==1.11.4
 
 # === Document Processing (lightweight) ===
 PyMuPDF==1.26.3
