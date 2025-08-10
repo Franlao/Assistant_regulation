@@ -1,9 +1,8 @@
 {
   "$schema": "https://railway.app/railway.schema.json",
   "build": {
-    "builder": "DOCKERFILE",
-    "dockerfilePath": "Dockerfile",
-    "buildCommand": "echo 'Starting optimized multi-stage build...'",
+    "builder": "NIXPACKS",
+    "buildCommand": "echo 'Using Railway auto-detection...'",
     "watchPatterns": [
       "**/*.py",
       "requirements.txt",
@@ -16,8 +15,7 @@
     "healthcheckPath": "/_stcore/health",
     "healthcheckTimeout": 300,
     "restartPolicyType": "ON_FAILURE",
-    "restartPolicyMaxRetries": 3,
-    "numReplicas": 1
+    "restartPolicyMaxRetries": 3
   },
   "environments": {
     "production": {
