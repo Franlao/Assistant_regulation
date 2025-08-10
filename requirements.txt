@@ -42,14 +42,5 @@ tqdm==4.67.1
 chromadb==1.0.15
 
 # === Text Processing (essential for chunking) ===
-chonkie==1.1.1
+chonkie[st]==1.1.1
 sentence-transformers==5.0.0
-# Note: torch sera installé automatiquement par sentence-transformers (version CPU)
-
-# === Lightweight alternatives to heavy ML packages ===
-# Use lightweight sentence transformers or simple TF-IDF for now
-# Can upgrade to full ML stack once basic deployment is stable
-
-# Note: torch, transformers, sentence-transformers temporarily excluded
-# to stay under Railway 4GB image limit. The app will use ChromaDB's
-# built-in embeddings and simpler text processing for initial deployment.
