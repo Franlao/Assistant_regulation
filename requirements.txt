@@ -41,6 +41,13 @@ tqdm==4.67.1
 # === Vector Database (lightweight config) ===
 chromadb==1.0.15
 
-# Note: Heavy ML packages commented out for initial deployment
-# Once Railway deployment works, we can gradually add:
-# torch, transformers, sentence-transformers, chonkie, etc.
+# === ML Libraries (restored for document processing) ===
+torch==2.7.1
+transformers==4.54.1
+sentence-transformers==5.0.0
+chonkie==1.1.1
+huggingface-hub==0.34.3
+
+# === LangChain ecosystem ===
+langchain-core==0.3.72
+langsmith==0.4.8
