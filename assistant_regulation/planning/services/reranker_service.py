@@ -24,16 +24,29 @@ class RerankerService:
     """
 
     def __init__(self, model_name: str | None = None):
+        import os
         cfg = get_config()
+        
+        # Détecter Railway et désactiver si configuré
+        self.is_railway = bool(os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RAILWAY_PROJECT_ID"))
+        self.jina_enabled = cfg.jina.enabled and not (self.is_railway and cfg.jina.disable_on_railway)
+        
+        if not self.jina_enabled:
+            print("Jina reranking désactivé (Railway détecté ou configuration)")
+            self.api_key = None
+            self.api_url = None
+            self.model_name = None
+            return
+        
         self.api_key: str | None = cfg.get_jina_api_key()
         if not self.api_key:
-            raise ValueError(
-                "Clé API Jina introuvable. Définissez la variable d'environnement 'JINA_API_KEY' "
-                "ou renseignez-la dans config.json (clé 'jina.api_key')."
-            )
+            print("Warning: Clé API Jina introuvable, reranking désactivé")
+            self.jina_enabled = False
+            return
 
         self.api_url: str = cfg.jina.api_url
         self.model_name: str = model_name or cfg.jina.default_model
+        self.timeout: int = cfg.jina.timeout
 
     # ------------------------------------------------------------------
     def _call_jina_api(self, query: str, docs: List[Any]) -> List[tuple[Any, float]]:
@@ -49,7 +62,8 @@ class RerankerService:
             "documents": docs,
             "return_documents": False,
         }
-        response = requests.post(self.api_url, headers=headers, json=payload, timeout=60)
+        # Utiliser timeout depuis config
+        response = requests.post(self.api_url, headers=headers, json=payload, timeout=self.timeout)
         if response.status_code >= 400:
             raise RuntimeError(f"Jina API error {response.status_code}: {response.text}")
         data = response.json()
@@ -90,6 +104,11 @@ class RerankerService:
         """Rerank puis retourne la liste de chunks réordonnés."""
         if not text_chunks:
             return []
+        
+        # Si Jina désactivé, retourner les chunks dans l'ordre original
+        if not self.jina_enabled:
+            print("Reranking Jina désactivé, retour chunks originaux")
+            return text_chunks[:top_k]
 
         index_to_chunk: List[Dict] = []
         docs: List[Any] = []
@@ -121,7 +140,13 @@ class RerankerService:
         try:
             ranked_pairs = self.rerank(query, docs, top_k=top_k)
         except Exception as e:
-            raise RuntimeError(f"Jina rerank failed: {e}. Docs sent: {len(docs)}")
+            print(f"Jina rerank failed: {e}. Docs sent: {len(docs)}")
+            # Fallback: retourner les chunks dans l'ordre original avec scores par défaut
+            print("Fallback: retour des chunks sans reranking")
+            for idx, chunk in enumerate(index_to_chunk):
+                chunk["rerank_score"] = 1.0 - (idx * 0.1)  # Score décroissant simple
+                chunk["score"] = chunk.get("score", 0.5)  # Garder le score original ou défaut
+            return index_to_chunk[:top_k]
         enriched_chunks: List[Dict] = []
         for doc, score in ranked_pairs:
             idx = docs.index(doc)

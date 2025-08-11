@@ -124,6 +124,9 @@ class JinaConfig:
     api_key: Optional[str] = None  # Peut être surchargée par la variable d'environnement
     default_model: str = "jina-reranker-m0"
     api_url: str = "https://api.jina.ai/v1/rerank"
+    enabled: bool = True
+    timeout: int = 15
+    disable_on_railway: bool = True
 
 @dataclass
 class AppConfig:

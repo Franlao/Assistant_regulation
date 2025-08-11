@@ -103,7 +103,10 @@
   "jina": {
     "api_key": null,
     "default_model": "jina-reranker-m0",
-    "api_url": "https://api.jina.ai/v1/rerank"
+    "api_url": "https://api.jina.ai/v1/rerank",
+    "enabled": true,
+    "timeout": 15,
+    "disable_on_railway": true
   },
   "assets_dir": "assets",
   "data_dir": "data",
