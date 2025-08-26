@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from enum import Enum
 import ollama
 from mistralai import Mistral, UserMessage
+from pydantic import BaseModel, Field, validator
 
 # Configuration du logging (moins verbeux par défaut)
 logging.basicConfig(level=logging.WARNING)
@@ -22,6 +23,15 @@ class KnowledgeSource(Enum):
     VECTOR_DB = "vector_db"      # Base vectorielle (réglementations)
     LLM_GENERAL = "llm_general"  # Connaissances générales du LLM
     HYBRID = "hybrid"            # Combinaison des deux
+
+class KnowledgeDecisionModel(BaseModel):
+    """Modèle Pydantic pour validation des réponses LLM"""
+    knowledge_source: str = Field(..., pattern="^(vector_db|llm_general|hybrid)$")
+    confidence_score: float = Field(..., ge=0.0, le=1.0)
+    reasoning: str = Field(..., min_length=5)
+    domain_detected: str = Field(..., min_length=2)
+    requires_regulations: bool
+    suggested_approach: str = Field(..., min_length=5)
 
 @dataclass
 class KnowledgeDecision:
@@ -94,15 +104,17 @@ ANALYSE REQUISE:
 3. Évalue si tes connaissances générales suffisent
 4. Choisis la meilleure source de connaissances
 
-RÉPONDS UNIQUEMENT EN JSON:
+RÉPONDS UNIQUEMENT EN JSON VALIDE (PAS DE MARKDOWN):
 {{
-    "knowledge_source": "vector_db|llm_general|hybrid",
-    "confidence_score": 0.85,
-    "reasoning": "explication de ton choix",
-    "domain_detected": "domaine identifié",
-    "requires_regulations": true/false,
-    "suggested_approach": "approche recommandée"
+    "knowledge_source": "vector_db",
+    "confidence_score": 0.95,
+    "reasoning": "Question sur réglementation spécifique",
+    "domain_detected": "réglementations",
+    "requires_regulations": true,
+    "suggested_approach": "Utiliser base vectorielle"
 }}
+
+ATTENTION: Tous les champs doivent être des STRINGS ou BOOLEAN, pas d'objets!
 
 EXEMPLES:
 - "Quelles sont les exigences R107 pour les sorties de secours?" → vector_db (réglementation spécifique)
@@ -127,9 +139,13 @@ ANALYSE:"""
                     model=self.model_name,
                     messages=messages,
                     temperature=0.1,
-                    max_tokens=300
+                    max_tokens=500
                 )
-                return response.choices[0].message.content
+                content = response.choices[0].message.content
+                if not content or not content.strip():
+                    logger.warning("Réponse Mistral vide")
+                    return self._fallback_knowledge_analysis(prompt)
+                return content
             else:
                 response = ollama.chat(
                     model=self.model_name,
@@ -139,10 +155,15 @@ ANALYSE:"""
                         "num_predict": 300
                     }
                 )
-                return response['message']['content']
+                content = response.get('message', {}).get('content', '')
+                if not content or not content.strip():
+                    logger.warning("Réponse Ollama vide")
+                    return self._fallback_knowledge_analysis(prompt)
+                return content
                 
         except Exception as e:
             logger.error(f"Erreur lors de l'appel LLM: {e}")
+            logger.debug(f"Provider: {self.llm_provider}, Model: {self.model_name}")
             return self._fallback_knowledge_analysis(prompt)
     
     def _fallback_knowledge_analysis(self, prompt: str) -> str:
@@ -212,46 +233,77 @@ ANALYSE:"""
         })
     
     def _parse_llm_response(self, response: str) -> Dict:
-        """Parse la réponse du LLM pour l'analyse des connaissances avec robustesse améliorée"""
+        """Parse la réponse du LLM pour l'analyse des connaissances avec validation Pydantic"""
         try:
+            # Vérification préliminaire : réponse vide ou None
+            if not response or not response.strip():
+                logger.warning("Réponse LLM vide, utilisation du fallback")
+                return self._get_fallback_decision()
+            
             response = response.strip()
+            logger.debug(f"Réponse LLM après strip: [{response[:300]}...]")
+            
+            # Nettoyer les blocs markdown (Mistral)
+            if response.startswith('```json'):
+                response = response[7:]  # Supprimer ```json
+                logger.debug("Suppression du début ```json")
+            if response.endswith('```'):
+                response = response[:-3]  # Supprimer ```
+                logger.debug("Suppression de la fin ```")
+            response = response.strip()
+            
+            # Nettoyer les caractères de contrôle problématiques
+            import re
+            response = re.sub(r'[\x00-\x1f\x7f-\x9f]', '', response)  # Supprimer caractères de contrôle
+            response = response.replace('\\n', ' ').replace('\\t', ' ')  # Nettoyer échappements
+            logger.debug(f"Réponse après nettoyage complet: [{response[:200]}...]")
             
             # Tentative 1: Chercher le JSON dans la réponse
             start_idx = response.find('{')
             end_idx = response.rfind('}') + 1
             
-            if start_idx != -1 and end_idx != -1:
+            if start_idx != -1 and end_idx > start_idx:
                 json_str = response[start_idx:end_idx]
-                parsed_data = json.loads(json_str)
-                logger.info("JSON parsé avec succès")
-                return parsed_data
+                try:
+                    raw_data = json.loads(json_str)
+                    # Validation Pydantic
+                    validated = KnowledgeDecisionModel(**raw_data)
+                    logger.info("JSON parsé et validé avec Pydantic")
+                    return validated.model_dump()
+                except (json.JSONDecodeError, Exception) as e:
+                    logger.debug(f"Erreur validation Pydantic: {e}")
+                    pass
                 
             # Tentative 2: Essayer de parser la réponse complète comme JSON
             try:
-                parsed_data = json.loads(response)
-                logger.info("Réponse complète parsée comme JSON")
-                return parsed_data
-            except:
+                raw_data = json.loads(response)
+                # Validation Pydantic
+                validated = KnowledgeDecisionModel(**raw_data)
+                logger.info("Réponse complète parsée et validée avec Pydantic")
+                return validated.model_dump()
+            except (json.JSONDecodeError, Exception) as e:
+                logger.debug(f"Erreur validation complète: {e}")
                 pass
                 
             # Tentative 3: Utiliser le fallback d'analyse par mots-clés
-            logger.warning("Pas de JSON trouvé, utilisation du fallback")
-            fallback_json = self._fallback_knowledge_analysis(f'QUESTION UTILISATEUR: "{response}"')
+            logger.warning("Pas de JSON valide trouvé, utilisation du fallback")
+            fallback_json = self._fallback_knowledge_analysis(f'QUESTION UTILISATEUR: "Analyse générale"')
             return json.loads(fallback_json)
                 
         except Exception as e:
             logger.error(f"Erreur parsing LLM response: {e}")
-            logger.debug(f"Réponse LLM problématique: {response[:200]}...")
-            
-            # Fallback final vers une structure par défaut
-            return {
-                "knowledge_source": "llm_general",
-                "confidence_score": 0.3,
-                "reasoning": f"Erreur de parsing LLM: {str(e)}",
-                "domain_detected": "Indéterminé", 
-                "requires_regulations": False,
-                "suggested_approach": "Réponse générale par défaut"
-            }
+            return self._get_fallback_decision()
+    
+    def _get_fallback_decision(self) -> Dict:
+        """Retourne une décision de fallback sécurisée"""
+        return {
+            "knowledge_source": "llm_general",
+            "confidence_score": 0.3,
+            "reasoning": "Erreur de parsing LLM - utilisation du fallback sécurisé",
+            "domain_detected": "Indéterminé", 
+            "requires_regulations": False,
+            "suggested_approach": "Réponse générale par défaut"
+        }
     
     def _validate_knowledge_data(self, data: Dict, query: str) -> Dict:
         """Valide et normalise les données d'analyse des connaissances"""

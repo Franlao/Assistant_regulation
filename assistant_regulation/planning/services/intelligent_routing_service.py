@@ -23,6 +23,7 @@ class SearchType(Enum):
     BY_REGULATION = "by_regulation"
     FULL_REGULATION = "full_regulation"
     COMPARATIVE = "comparative"
+    SUMMARY_REQUEST = "summary_request"  # Nouveau : demande de résumé
 
 @dataclass
 class QueryAnalysis:
@@ -34,6 +35,7 @@ class QueryAnalysis:
     confidence_score: float
     reasoning: str
     intent_description: str
+    is_summary_request: bool = False  # Nouveau champ pour les demandes de résumé
 
 class IntelligentRoutingService:
     """
@@ -69,6 +71,7 @@ TYPES DE RECHERCHE DISPONIBLES:
 2. "by_regulation" - Recherche ciblée dans une réglementation spécifique
 3. "full_regulation" - Récupération complète d'une réglementation pour résumé
 4. "comparative" - Comparaison entre plusieurs réglementations
+5. "summary_request" - Demande de RÉSUMÉ COMPLET d'une réglementation
 
 RÉGLEMENTATIONS CONNUES:
 - ECE R46 (rétroviseurs, vision indirecte)
@@ -78,7 +81,7 @@ RÉGLEMENTATIONS CONNUES:
 INSTRUCTIONS:
 1. Identifie si la requête mentionne une réglementation spécifique (R46, R107, ECE R46, etc.)
 2. Détermine l'intention de l'utilisateur:
-   - Veut-il un résumé complet d'une réglementation?
+   - Veut-il un résumé complet d'une réglementation? (mots-clés: résumé, résume, synthèse, overview, complet)
    - Veut-il comparer plusieurs réglementations?
    - Cherche-t-il quelque chose de spécifique dans une réglementation?
    - Fait-il une recherche générale?
@@ -87,7 +90,7 @@ INSTRUCTIONS:
 
 RÉPONDS UNIQUEMENT EN JSON avec cette structure exacte:
 {{
-    "search_type": "classic|by_regulation|full_regulation|comparative",
+    "search_type": "classic|by_regulation|full_regulation|comparative|summary_request",
     "regulation_code": "code exact ou null",
     "regulations_mentioned": ["liste des codes détectés"],
     "query_cleaned": "requête nettoyée pour la recherche",
@@ -98,7 +101,8 @@ RÉPONDS UNIQUEMENT EN JSON avec cette structure exacte:
 
 EXEMPLES:
 - "Quelles sont les exigences de la R107?" → by_regulation, R107
-- "Résumé complet de ECE R46" → full_regulation, ECE R46
+- "Résumé complet de ECE R46" → summary_request, ECE R46
+- "Résume-moi la réglementation R107" → summary_request, R107
 - "Différence entre R107 et R46" → comparative, [R107, R46]
 - "Comment tester la résistance?" → classic, null
 
@@ -154,7 +158,12 @@ ANALYSE:"""
         regulations = [match.replace(' ', ' ').upper() for match in reg_matches if match and isinstance(match, str)]
         
         # Déterminer le type de recherche
-        if any(word in query_lower for word in ['résumé', 'complet', 'synthèse', 'overview']):
+        summary_keywords = ['résumé', 'résume', 'synthèse', 'overview']
+        complete_keywords = ['complet']
+        
+        if any(word in query_lower for word in summary_keywords):
+            search_type = "summary_request" if regulations else "classic"
+        elif any(word in query_lower for word in complete_keywords) and regulations:
             search_type = "full_regulation"
         elif any(word in query_lower for word in ['différence', 'comparer', 'versus', 'par rapport']):
             search_type = "comparative"
@@ -180,10 +189,22 @@ ANALYSE:"""
         })
     
     def _parse_llm_response(self, response: str) -> Dict:
-        """Parse la réponse du LLM"""
+        """Parse la réponse du LLM avec nettoyage des caractères de contrôle"""
         try:
-            # Nettoyer la réponse (supprimer les markdown, etc.)
+            # Nettoyer la réponse
             response = response.strip()
+            
+            # Nettoyer les blocs markdown (Mistral)
+            if response.startswith('```json'):
+                response = response[7:]
+            if response.endswith('```'):
+                response = response[:-3]
+            response = response.strip()
+            
+            # Nettoyer les caractères de contrôle problématiques
+            import re
+            response = re.sub(r'[\x00-\x1f\x7f-\x9f]', '', response)
+            response = response.replace('\\n', ' ').replace('\\t', ' ')
             
             # Trouver le JSON dans la réponse
             start_idx = response.find('{')
@@ -197,7 +218,6 @@ ANALYSE:"""
                 
         except Exception as e:
             logger.error(f"Erreur parsing LLM response: {e}")
-            logger.debug(f"Réponse originale: {response}")
             
             # Fallback vers une structure par défaut
             return {
@@ -334,6 +354,14 @@ ANALYSE:"""
                 'query': analysis.query_cleaned
             }
             
+        elif analysis.search_type == SearchType.SUMMARY_REQUEST:
+            routing_params['regulation_code'] = analysis.regulation_code
+            routing_params['method'] = 'intelligent_summary'
+            routing_params['params'] = {
+                'regulation_code': analysis.regulation_code
+            }
+            routing_params['query'] = f"Résumé intelligent de {analysis.regulation_code}"
+            
         else:  # SearchType.CLASSIC
             routing_params['method'] = 'search'
             routing_params['params'] = {
@@ -370,6 +398,9 @@ ANALYSE:"""
         elif decision['search_type'] == 'comparative':
             explanation += f"Comparaison entre les réglementations: {', '.join(decision['regulations'])}\n"
             
+        elif decision['search_type'] == 'summary_request':
+            explanation += f"Génération de résumé intelligent pour la réglementation: {decision['regulation_code']}\n"
+            
         else:
             explanation += "Recherche générale dans toutes les réglementations\n"
         
@@ -384,12 +415,15 @@ if __name__ == "__main__":
     test_queries = [
         "Quelles sont les exigences de la R107 pour les sorties de secours?",
         "Résumé complet de la réglementation ECE R46",
+        "Résume-moi la réglementation R107",
         "Différence entre R107 et R46 pour les rétroviseurs",
         "Comment tester la résistance des matériaux?",
         "Selon la R107, quelles sont les dimensions minimales?",
         "Toutes les exigences de sécurité pour les autobus",
         "Peux-tu me faire un overview de la norme R107?",
-        "Comparaison entre les exigences R46 et R107 pour la visibilité"
+        "Comparaison entre les exigences R46 et R107 pour la visibilité",
+        "Synthèse de ECE R46",
+        "Resume moi la reglementation R107"
     ]
     
     for query in test_queries:

@@ -44,18 +44,26 @@ class BaseRetriever:
         # Déterminer le provider d'embeddings
         self._setup_embedding_provider()
         
-        # Créer la collection avec la fonction d'embedding appropriée
-        if self.embedding_provider == "mistral" and self.mistral_ef:
-            self.collection = self.client.get_or_create_collection(
-                name=collection_name,
-                embedding_function=self.mistral_ef,
-                metadata={"hnsw:space": "cosine"}
-            )
-        else:
-            self.collection = self.client.get_or_create_collection(
-                name=collection_name,
-                metadata={"hnsw:space": "cosine"}
-            )
+        # Gérer les collections existantes et les fonctions d'embedding
+        try:
+            # Essayer d'abord de récupérer la collection existante sans spécifier d'embedding function
+            self.collection = self.client.get_collection(name=collection_name)
+            print(f"Collection {collection_name} trouvée avec embedding function existante")
+        except Exception:
+            # Si la collection n'existe pas, la créer avec la bonne fonction d'embedding
+            if self.embedding_provider == "mistral" and self.mistral_ef:
+                print(f"Création de la collection {collection_name} avec Mistral embeddings")
+                self.collection = self.client.create_collection(
+                    name=collection_name,
+                    embedding_function=self.mistral_ef,
+                    metadata={"hnsw:space": "cosine"}
+                )
+            else:
+                print(f"Création de la collection {collection_name} avec embeddings par défaut")
+                self.collection = self.client.create_collection(
+                    name=collection_name,
+                    metadata={"hnsw:space": "cosine"}
+                )
         
         # Initialisation TF-IDF
         self.vectorizer = TfidfVectorizer() 

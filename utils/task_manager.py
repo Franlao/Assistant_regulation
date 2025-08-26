@@ -183,19 +183,20 @@ def async_upload_files(uploaded_files: List, text_only: bool, overwrite: bool,
         if progress_callback:
             progress_callback(0.1, "Préparation des fichiers...")
         
-        # Créer un dossier temporaire
-        temp_dir = tempfile.mkdtemp()
+        # Utiliser le dossier Data/ au lieu d'un dossier temporaire
+        data_dir = os.path.join(os.getcwd(), 'Data')
+        os.makedirs(data_dir, exist_ok=True)
         saved_paths = []
         
-        # Sauvegarder les fichiers (uploaded_files est maintenant une liste de dict avec name et content)
+        # Sauvegarder les fichiers directement dans Data/
         for i, file_data in enumerate(uploaded_files):
             if progress_callback:
                 progress_callback(0.1 + (i / len(uploaded_files)) * 0.3, f"Sauvegarde: {file_data['name']}")
             
-            temp_path = os.path.join(temp_dir, file_data['name'])
-            with open(temp_path, "wb") as f:
+            data_path = os.path.join(data_dir, file_data['name'])
+            with open(data_path, "wb") as f:
                 f.write(file_data['content'])
-            saved_paths.append(temp_path)
+            saved_paths.append(data_path)
         
         if progress_callback:
             progress_callback(0.4, "Vérification de la base de données...")
@@ -251,9 +252,8 @@ def async_upload_files(uploaded_files: List, text_only: bool, overwrite: bool,
                 "errors": []
             }
         
-        # Nettoyer le dossier temporaire
-        import shutil
-        shutil.rmtree(temp_dir, ignore_errors=True)
+        # Les fichiers sont maintenant dans Data/ de façon permanente
+        # Pas besoin de nettoyage
         
         if progress_callback:
             progress_callback(1.0, "Upload terminé avec succès!")

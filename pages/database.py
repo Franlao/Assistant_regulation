@@ -247,19 +247,20 @@ def process_uploaded_files(uploaded_files: List, text_only: bool, overwrite: boo
         progress_bar = st.progress(0)
         status_text = st.empty()
         
-        # Créer un dossier temporaire
-        temp_dir = tempfile.mkdtemp()
+        # Utiliser le dossier Data/ au lieu d'un dossier temporaire
+        data_dir = os.path.join(os.getcwd(), 'Data')
+        os.makedirs(data_dir, exist_ok=True)
         saved_paths = []
         
-        # Sauvegarder les fichiers
+        # Sauvegarder les fichiers directement dans Data/
         for i, uploaded_file in enumerate(uploaded_files):
             status_text.text(f"Sauvegarde: {uploaded_file.name}")
             progress_bar.progress((i + 1) / (len(uploaded_files) * 2))
             
-            temp_path = os.path.join(temp_dir, uploaded_file.name)
-            with open(temp_path, "wb") as f:
+            data_path = os.path.join(data_dir, uploaded_file.name)
+            with open(data_path, "wb") as f:
                 f.write(uploaded_file.getvalue())
-            saved_paths.append(temp_path)
+            saved_paths.append(data_path)
         
         # Traitement
         health = check_database_health()
@@ -305,9 +306,7 @@ def process_uploaded_files(uploaded_files: List, text_only: bool, overwrite: boo
             
             st.success(f"Ingestion terminée: {success_count}/{len(saved_paths)} fichiers")
         
-        # Nettoyer
-        import shutil
-        shutil.rmtree(temp_dir, ignore_errors=True)
+        # Les fichiers sont maintenant dans Data/ de façon permanente
         
     except Exception as e:
         st.error(f"❌ Erreur de traitement: {e}")

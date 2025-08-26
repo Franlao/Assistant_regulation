@@ -52,7 +52,7 @@ class GenerationService:
         context: str = "",
         conversation_context: str = "",
         temperature: float = 0.3,
-        max_tokens: int = 1024,
+        max_tokens: int = 2048,
     ) -> str:
         """Genère la réponse finale à partir du contexte fourni."""
         full_prompt: str = self.prompting_service.build_generation_prompt(
@@ -84,7 +84,7 @@ class GenerationService:
         context: str = "",
         conversation_context: str = "",
         temperature: float = 0.3,
-        max_tokens: int = 1024,
+        max_tokens: int = 2048,
     ):
         """Genère la réponse finale en streaming à partir du contexte fourni."""
         full_prompt: str = self.prompting_service.build_generation_prompt(

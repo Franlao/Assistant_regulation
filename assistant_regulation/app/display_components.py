@@ -419,6 +419,15 @@ def _render_source_card_minimal(source, index):
         file_path = file_path.replace('%20', ' ')
         import urllib.parse
         file_path = urllib.parse.unquote(file_path)
+        
+        # Si le fichier n'existe pas, essayer de le trouver dans le dossier Data/
+        if not os.path.exists(file_path):
+            # Extraire juste le nom du fichier  
+            filename = os.path.basename(file_path)
+            # Chercher dans le dossier Data/
+            data_path = os.path.join(os.getcwd(), 'Data', filename)
+            if os.path.exists(data_path):
+                file_path = data_path
     
     # Design minimaliste clean inspiré des standards 2024
     with st.container():

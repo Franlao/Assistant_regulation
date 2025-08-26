@@ -56,6 +56,11 @@ class QueryProcessor:
     ) -> Dict:
         """Traitement avec le nouveau système de routage avancé."""
         
+        # Étape 0: Vérifier si c'est une demande de résumé intelligent
+        intelligent_decision = self.intelligent_routing_service.get_routing_decision(query)
+        if intelligent_decision['search_type'] == 'summary_request':
+            return self._process_intelligent_summary(query, intelligent_decision)
+        
         # Étape 1: Obtenir la décision de routage maître
         routing_decision = self.master_routing_service.route_query(query)
         
@@ -84,6 +89,11 @@ class QueryProcessor:
         top_k: int,
     ) -> Dict:
         """Traitement avec l'ancien système de routage."""
+        
+        # Vérifier si c'est une demande de résumé intelligent avant le routage traditionnel
+        intelligent_decision = self.intelligent_routing_service.get_routing_decision(query)
+        if intelligent_decision['search_type'] == 'summary_request':
+            return self._process_intelligent_summary(query, intelligent_decision)
         
         analysis = self.query_analyzer.analyse_query(query)
 
@@ -358,4 +368,59 @@ class QueryProcessor:
             except Exception:
                 chunks["tables"] = []
         
-        return chunks 
+        return chunks
+    
+    def _process_intelligent_summary(self, query: str, intelligent_decision: Dict) -> Dict:
+        """Traite une demande de résumé intelligent."""
+        
+        regulation_code = intelligent_decision.get('regulation_code')
+        
+        if not regulation_code:
+            return {
+                "answer": "Désolé, je n'ai pas pu identifier la réglementation à résumer. Veuillez spécifier le code de réglementation (ex: R107, ECE R46).",
+                "sources": [],
+                "context_used": "",
+                "conversation_context": ""
+            }
+        
+        try:
+            # Importer et utiliser le service de résumé intelligent
+            from assistant_regulation.planning.services.intelligent_summary_service import IntelligentSummaryService
+            
+            summary_service = IntelligentSummaryService(
+                llm_provider=self.generation_service.llm_provider,
+                model_name=self.generation_service.model_name
+            )
+            
+            # Générer le résumé
+            summary_result = summary_service.generate_regulation_summary(regulation_code)
+            
+            if summary_result and summary_result.summary_text:
+                return {
+                    "answer": summary_result.summary_text,
+                    "sources": [],  # Le résumé utilise toute la réglementation comme source
+                    "context_used": f"Résumé complet de la réglementation {regulation_code}",
+                    "conversation_context": f"Résumé généré pour {regulation_code}",
+                    "summary_metadata": {
+                        "regulation_code": regulation_code,
+                        "summary_length": summary_result.summary_length,
+                        "original_pages": summary_result.original_pages,
+                        "processing_time": summary_result.processing_time,
+                        "sections_count": summary_result.sections_count
+                    }
+                }
+            else:
+                return {
+                    "answer": f"Désolé, je n'ai pas pu générer de résumé pour la réglementation {regulation_code}. Elle pourrait ne pas être disponible dans ma base de données.",
+                    "sources": [],
+                    "context_used": "",
+                    "conversation_context": ""
+                }
+                
+        except Exception as e:
+            return {
+                "answer": f"Erreur lors de la génération du résumé pour {regulation_code}: {str(e)}",
+                "sources": [],
+                "context_used": "",
+                "conversation_context": ""
+            } 

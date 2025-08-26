@@ -139,13 +139,19 @@ class ModularOrchestrator:
             )
 
         # Construction de la réponse finale
-        return self.response_builder.build_response(
-            query, 
-            result["answer"], 
-            result["chunks"], 
-            result["analysis"], 
-            result.get("routing_decision")
-        )
+        # Gestion des différents formats de retour (résumé intelligent vs RAG traditionnel)
+        if "chunks" in result and "analysis" in result:
+            # Format traditionnel RAG
+            return self.response_builder.build_response(
+                query, 
+                result["answer"], 
+                result["chunks"], 
+                result["analysis"], 
+                result.get("routing_decision")
+            )
+        else:
+            # Format résumé intelligent - retour direct
+            return result
 
     def process_query_stream(
         self,
