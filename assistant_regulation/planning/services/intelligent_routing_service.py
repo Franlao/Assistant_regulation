@@ -113,13 +113,14 @@ ANALYSE:"""
         
         try:
             if self.llm_provider == "mistral" and self.mistral_client:
-                # Utiliser Mistral AI
+                # Utiliser Mistral AI avec mode JSON pour garantir une sortie JSON valide
                 messages = [UserMessage(content=prompt)]
                 response = self.mistral_client.chat.complete(
                     model=self.model_name,
                     messages=messages,
                     temperature=0.1,
-                    max_tokens=500
+                    max_tokens=500,
+                    response_format={"type": "json_object"}  # Force la sortie JSON
                 )
                 return response.choices[0].message.content
             
@@ -189,46 +190,63 @@ ANALYSE:"""
         })
     
     def _parse_llm_response(self, response: str) -> Dict:
-        """Parse la réponse du LLM avec nettoyage des caractères de contrôle"""
+        """Parse la réponse du LLM - optimisé pour le mode JSON de Mistral"""
         try:
-            # Nettoyer la réponse
+            # Vérifier si la réponse est vide
+            if not response or not response.strip():
+                logger.warning("Réponse LLM vide")
+                raise ValueError("Réponse LLM vide")
+            
             response = response.strip()
             
-            # Nettoyer les blocs markdown (Mistral)
-            if response.startswith('```json'):
-                response = response[7:]
-            if response.endswith('```'):
-                response = response[:-3]
-            response = response.strip()
+            # Avec le mode JSON de Mistral, la réponse devrait être du JSON pur
+            # Mais on garde un nettoyage minimal pour Ollama
+            if self.llm_provider != "mistral":
+                # Nettoyer les blocs markdown pour Ollama
+                if response.startswith('```json'):
+                    response = response[7:]
+                elif response.startswith('```'):
+                    response = response[3:]
+                if response.endswith('```'):
+                    response = response[:-3]
+                response = response.strip()
             
-            # Nettoyer les caractères de contrôle problématiques
-            import re
-            response = re.sub(r'[\x00-\x1f\x7f-\x9f]', '', response)
-            response = response.replace('\\n', ' ').replace('\\t', ' ')
-            
-            # Trouver le JSON dans la réponse
-            start_idx = response.find('{')
-            end_idx = response.rfind('}') + 1
-            
-            if start_idx != -1 and end_idx != -1:
-                json_str = response[start_idx:end_idx]
-                return json.loads(json_str)
+            # Pour Mistral avec mode JSON, on peut parser directement
+            if self.llm_provider == "mistral":
+                parsed_data = json.loads(response)
             else:
-                raise ValueError("Pas de JSON trouvé dans la réponse")
+                # Pour Ollama, chercher le JSON dans la réponse
+                start_idx = response.find('{')
+                end_idx = response.rfind('}') + 1
                 
+                if start_idx == -1 or end_idx == 0:
+                    raise ValueError("Pas de JSON trouvé dans la réponse")
+                    
+                json_str = response[start_idx:end_idx]
+                parsed_data = json.loads(json_str)
+            
+            # Valider la structure
+            if not isinstance(parsed_data, dict) or "search_type" not in parsed_data:
+                raise ValueError("Structure JSON invalide")
+                
+            return parsed_data
+                
+        except json.JSONDecodeError as e:
+            logger.error(f"Erreur de décodage JSON: {e}")
+            logger.error(f"Réponse reçue: {response[:300] if response else 'None'}")
         except Exception as e:
             logger.error(f"Erreur parsing LLM response: {e}")
             
-            # Fallback vers une structure par défaut
-            return {
-                "search_type": "classic",
-                "regulation_code": None,
-                "regulations_mentioned": [],
-                "query_cleaned": "",
-                "confidence_score": 0.3,
-                "reasoning": "Erreur de parsing LLM",
-                "intent_description": "Analyse par défaut"
-            }
+        # Fallback robuste
+        return {
+            "search_type": "classic",
+            "regulation_code": None,
+            "regulations_mentioned": [],
+            "query_cleaned": "",
+            "confidence_score": 0.3,
+            "reasoning": "Erreur de parsing LLM - fallback utilisé",
+            "intent_description": "Analyse par défaut"
+        }
     
     def analyze_query(self, query: str) -> QueryAnalysis:
         """

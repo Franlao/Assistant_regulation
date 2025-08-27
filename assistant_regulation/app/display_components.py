@@ -572,8 +572,7 @@ def display_images(images, max_height=300, section_key=None, t=None, config=None
                             st.image(
                                 image_url,
                                 caption=None,  # Pas de légende ici, on l'ajoute plus bas
-                                width=None,
-                                use_container_width=True
+                                width='stretch'
                             )
                         
                         # Description tronquée courte
@@ -614,7 +613,7 @@ def display_images(images, max_height=300, section_key=None, t=None, config=None
                         """, unsafe_allow_html=True)
                     else:
                         # Pour les URL normales, utiliser st.image
-                        st.image(sel_img["url"], use_container_width=True)
+                        st.image(sel_img["url"], width='stretch')
                     
                     # Description complète dans un container discret
                     with st.container():
@@ -678,7 +677,7 @@ def display_tables(tables, t=None):
                 if df is not None:
                     # Corriger les noms de colonnes
                     df.columns = fix_column_names(df.columns)
-                    st.dataframe(df, use_container_width=True)
+                    st.dataframe(df, width='stretch')
                     continue
             
             # Étape 2: Traiter différents formats de données structurées
@@ -689,13 +688,13 @@ def display_tables(tables, t=None):
                         # Corriger les noms de colonnes
                         column_names = fix_column_names(content[0] if len(content) > 0 else None)
                         df = pd.DataFrame(content[1:], columns=column_names)
-                        st.dataframe(df, use_container_width=True)
+                        st.dataframe(df, width='stretch')
                     else:
                         st.write("Tableau vide")
                 elif isinstance(content, list) and all(isinstance(row, dict) for row in content):
                     # Cas d'une liste de dictionnaires
                     df = pd.DataFrame(content)
-                    st.dataframe(df, use_container_width=True)
+                    st.dataframe(df, width='stretch')
                 else:
                     # Si le contenu est une chaîne, essayer de l'analyser comme un tableau
                     if isinstance(content, str):
@@ -716,7 +715,7 @@ def display_tables(tables, t=None):
                                     # Corriger les noms de colonnes
                                     column_names = fix_column_names(rows[0] if len(rows) > 0 else None)
                                     df = pd.DataFrame(rows[1:], columns=column_names)
-                                    st.dataframe(df, use_container_width=True)
+                                    st.dataframe(df, width='stretch')
                                     continue
                         
                         # Si toutes les tentatives échouent, afficher tel quel mais avec un format amélioré
@@ -816,6 +815,24 @@ def stream_assistant_response(orchestrator, query, settings, t):
                     routing_decision = analysis_data.get("routing_decision", {}) if isinstance(analysis_data, dict) else {}
                     mode_badge = get_intelligent_routing_badge(analysis_data, routing_decision)
                     
+                    # Préparer le contenu avec traitement amélioré des formules et markdown
+                    import re
+                    processed_text = response_text
+                    
+                    # Convertir d'abord le markdown en HTML
+                    processed_text = re.sub(r'\*\*([^*]+)\*\*', r'<strong>\1</strong>', processed_text)  # Gras
+                    processed_text = re.sub(r'\*([^*]+)\*', r'<em>\1</em>', processed_text)  # Italique
+                    
+                    # Convertir les formules LaTeX en format MathJax
+                    processed_text = re.sub(r'\\frac\{([^}]+)\}\{([^}]+)\}', r'$$\\frac{\1}{\2}$$', processed_text)
+                    processed_text = re.sub(r'\\\(([^)]+)\\\)', r'$\1$', processed_text)
+                    # Traiter les fractions simples avec des chiffres et des variables
+                    processed_text = re.sub(r'\b(\d+)\s*/\s*([a-zA-Z]+)\b', r'$$\\frac{\1}{\2}$$', processed_text)
+                    processed_text = re.sub(r'\b(\d+)\s*/\s*(\d+)\b', r'$$\\frac{\1}{\2}$$', processed_text)
+                    # Traiter les expressions mathématiques entre [ ]
+                    processed_text = re.sub(r'\[\s*([^[\]]*(?:frac|=|\+|\-|\*|/)[^[\]]*)\s*\]', r'$$\1$$', processed_text)
+                    
+                    # Afficher le message complet avec HTML et markdown
                     st.markdown(f"""
                     <div class="assistant-message">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -825,7 +842,7 @@ def stream_assistant_response(orchestrator, query, settings, t):
                             </div>
                             <span style="color: #888; font-size: 0.8em;">{get_current_time()}</span>
                         </div>
-                        <div style="color: #333; margin-top: 10px;">{response_text}<span class="cursor">▋</span></div>
+                        <div style="color: #333; margin-top: 10px;">{processed_text}<span class="cursor">▋</span></div>
                     </div>
                     """, unsafe_allow_html=True)
             
@@ -840,6 +857,23 @@ def stream_assistant_response(orchestrator, query, settings, t):
                     routing_decision = chunk_content.get("routing_decision", {})
                     mode_badge = get_intelligent_routing_badge(analysis_data, routing_decision)
                     
+                    # Traitement final du texte avec markdown et formules LaTeX
+                    import re
+                    final_text = response_text
+                    
+                    # Convertir d'abord le markdown en HTML
+                    final_text = re.sub(r'\*\*([^*]+)\*\*', r'<strong>\1</strong>', final_text)  # Gras
+                    final_text = re.sub(r'\*([^*]+)\*', r'<em>\1</em>', final_text)  # Italique
+                    
+                    # Convertir les formules LaTeX en format MathJax
+                    final_text = re.sub(r'\\frac\{([^}]+)\}\{([^}]+)\}', r'$$\\frac{\1}{\2}$$', final_text)
+                    final_text = re.sub(r'\\\(([^)]+)\\\)', r'$\1$', final_text)
+                    # Traiter les fractions simples avec des chiffres et des variables
+                    final_text = re.sub(r'\b(\d+)\s*/\s*([a-zA-Z]+)\b', r'$$\\frac{\1}{\2}$$', final_text)
+                    final_text = re.sub(r'\b(\d+)\s*/\s*(\d+)\b', r'$$\\frac{\1}{\2}$$', final_text)
+                    # Traiter les expressions mathématiques entre [ ]
+                    final_text = re.sub(r'\[\s*([^[\]]*(?:frac|=|\+|\-|\*|/)[^[\]]*)\s*\]', r'$$\1$$', final_text)
+                    
                     st.markdown(f"""
                     <div class="assistant-message">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -849,7 +883,7 @@ def stream_assistant_response(orchestrator, query, settings, t):
                             </div>
                             <span style="color: #888; font-size: 0.8em;">{get_current_time()}</span>
                         </div>
-                        <div style="color: #333; margin-top: 10px;">{response_text}</div>
+                        <div style="color: #333; margin-top: 10px;">{final_text}</div>
                     </div>
                     """, unsafe_allow_html=True)
         

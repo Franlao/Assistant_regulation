@@ -13,6 +13,7 @@ from pages.database import (
     render_database_status, render_pdf_ingestion, render_database_summary,
     render_regulation_search, render_regulations_list, render_database_cleanup
 )
+from pages.summary import main as render_summary_page
 from utils.session_utils import initialize_session_state
 from components.auth_components import require_authentication, require_admin_access
 from translations import get_text
@@ -72,6 +73,18 @@ if 'settings' not in st.session_state:
 
 # Charger les styles CSS
 load_all_styles()
+
+# Ajouter le support MathJax pour les formules mathématiques
+st.markdown("""
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+  tex2jax: {inlineMath: [['$','$'], ['\\\\(','\\\\)']]}
+});
+</script>
+<script type="text/javascript"
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML">
+</script>
+""", unsafe_allow_html=True)
 
 # Initialiser les états de session supplémentaires
 initialize_session_state()
@@ -194,6 +207,9 @@ else:
 # Contenu principal basé sur la page sélectionnée
 if st.session_state.selected_page == "💬 Chat":
     render_main_content(t, config)
+    
+elif st.session_state.selected_page == "📝 Summary":
+    render_summary_page()
     
 elif st.session_state.selected_page == "⚙️ Configuration":
     render_configuration_page(t, config)

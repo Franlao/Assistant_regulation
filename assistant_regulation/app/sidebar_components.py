@@ -212,7 +212,7 @@ def render_sidebar(config, t, session_state):
     # ------------------- Navigation -------------------
     st.markdown("### 🧭 Navigation")
 
-    available_pages = ["💬 Chat", "⚙️ Configuration", "🗃️ Database"]
+    available_pages = ["💬 Chat", "📝 Summary", "⚙️ Configuration", "🗃️ Database"]
 
     # Initialiser la page sélectionnée
     if 'selected_page' not in session_state:
@@ -231,6 +231,7 @@ def render_sidebar(config, t, session_state):
 
     page_descriptions = {
         "💬 Chat": "Interface conversationnelle RAG",
+        "📝 Summary": "Résumés intelligents de réglementations",
         "⚙️ Configuration": "Paramètres LLM et RAG", 
         "🗃️ Database": "Gestion ChromaDB (Admin)"
     }

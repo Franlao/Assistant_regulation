@@ -229,7 +229,7 @@ STRUCTURE ATTENDUE:
 
 RÉSUMÉ COMPLET:"""
 
-    def call_llm_for_summary(self, prompt: str, max_tokens: int = 1500, thread_safe: bool = True) -> str:
+    def call_llm_for_summary(self, prompt: str, max_tokens: int = 4000, thread_safe: bool = True) -> str:
         """Appelle le LLM pour générer un résumé (thread-safe)"""
         try:
             if self.llm_provider == "mistral" and self.mistral_client:
