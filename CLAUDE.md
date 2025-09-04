@@ -91,6 +91,39 @@ python config/config.py
 jupyter notebook notebooks/
 ```
 
+### Testing
+```bash
+# Run all tests
+pytest
+
+# Run unit tests only
+pytest -m unit
+
+# Run with coverage report
+pytest --cov=assistant_regulation --cov-report=html
+
+# Run specific test file
+pytest tests/test_config.py
+
+# Quick development tests (exit on first failure)
+pytest -x --tb=short
+```
+
+### Debugging and Troubleshooting
+```bash
+# Check ChromaDB status and collections
+python -c "from assistant_regulation.planning.Database.database_summary import get_database_status; print(get_database_status())"
+
+# Validate system configuration
+python -c "from config import get_config; config = get_config(); print('Configuration loaded successfully')"
+
+# Clear all caches (if experiencing issues)
+python -c "from assistant_regulation.processing.Modul_Process.clean_cache import clear_all_caches; clear_all_caches()"
+
+# Check available models for providers
+python -c "from config import get_config; config = get_config(); print('Ollama models:', config.llm.ollama_models); print('Mistral models:', config.llm.mistral_models)"
+```
+
 ## Configuration System
 
 The application uses a centralized configuration system:
@@ -135,6 +168,13 @@ Services follow a consistent pattern with dependency injection through the Modul
 2. Accept LLM provider/model configuration in constructor
 3. Be injected into ModularOrchestrator and passed to QueryProcessor
 
+### UI Component Development
+All Streamlit UI components follow the pattern:
+- Located in `assistant_regulation/app/` for core components
+- Use `translations` module for multilingual support via `t()` function
+- Follow the config-driven approach using `get_config()` for settings
+- Components accept `config` and `t` (translation function) as parameters
+
 ### Text Chunking with Late Chunker
 The system uses `LateChunkerRegulation` class which wraps chonkie's Late Chunker:
 - Preserves global context across the entire document
@@ -164,3 +204,35 @@ The system supports three retrieval modes that can be enabled/disabled:
 - **Configuration**: `config/config.py` and `config/config.json`
 - **UI Components**: `assistant_regulation/app/`
 - **Translations**: `translations/` for multilingual support
+
+## Testing and Quality Assurance
+
+The project includes a comprehensive pytest test suite:
+- **Unit tests**: Fast, isolated component testing with mocks
+- **Integration tests**: End-to-end workflow validation
+- **Coverage reports**: Track test coverage across the codebase
+- **Markers**: `@pytest.mark.unit` and `@pytest.mark.integration` for selective testing
+
+Test files are organized in the `tests/` directory:
+- `test_config.py`: Configuration system tests
+- `test_services.py`: Service layer tests
+- `test_orchestrator.py`: Orchestrator workflow tests
+- `test_processing.py`: Document processing tests
+- `test_app_components.py`: UI component tests
+- `test_integration.py`: Full integration tests
+
+## Environment and Dependencies
+
+### Python Version
+The project requires Python 3.10+ (currently tested on Python 3.13.5)
+
+### Critical Dependencies
+- **chonkie[st]**: Core chunking system - install with streamlit support
+- **chromadb**: Vector database for embeddings
+- **streamlit**: Web interface framework
+- **ollama** or **mistralai**: LLM providers (choose based on setup)
+
+### Optional Dependencies
+- **jupyter**: For development notebooks
+- **jina**: For reranking service (requires API key)
+- **weasyprint**: For enhanced PDF export

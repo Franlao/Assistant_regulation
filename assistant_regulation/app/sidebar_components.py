@@ -75,7 +75,7 @@ def render_search_options(t, settings):
 
 def render_conversation_memory(config, settings, orchestrator):
     """Affiche la section mémoire conversationnelle"""
-    with st.expander("🧠 Mémoire Conversationnelle", expanded=False):
+    with st.expander("Mémoire Conversationnelle", expanded=False):
         enable_memory = st.toggle(
             "Activer la mémoire conversationnelle", 
             value=settings["enable_conversation_memory"],
@@ -98,7 +98,7 @@ def render_conversation_memory(config, settings, orchestrator):
             if orchestrator and hasattr(orchestrator, 'get_conversation_stats'):
                 stats = orchestrator.get_conversation_stats()
                 if stats and stats.get("conversation_memory") != "disabled":
-                    st.write("**📊 Statistiques de mémoire:**")
+                    st.write("**Statistiques de mémoire:**")
                     col1, col2, col3 = st.columns(3)
                     with col1:
                         st.metric("Tours récents", stats.get('recent_turns', 0))
@@ -110,14 +110,14 @@ def render_conversation_memory(config, settings, orchestrator):
                     # Boutons d'action
                     col1, col2 = st.columns(2)
                     with col1:
-                        if st.button("🧹 Effacer mémoire", help="Effacer toute la mémoire conversationnelle", key="clear_memory_btn"):
+                        if st.button("Effacer mémoire", help="Effacer toute la mémoire conversationnelle", key="clear_memory_btn"):
                             if orchestrator:
                                 orchestrator.clear_conversation_memory()
                                 st.success("Mémoire effacée!")
                                 st.rerun()
                     
                     with col2:
-                        if st.button("📥 Exporter conversation", help="Exporter la conversation actuelle", key="export_conversation_btn"):
+                        if st.button("Exporter conversation", help="Exporter la conversation actuelle", key="export_conversation_btn"):
                             if orchestrator:
                                 export_data = orchestrator.export_conversation()
                                 st.json(export_data)
@@ -128,12 +128,12 @@ def render_conversation_memory(config, settings, orchestrator):
 
 def render_configuration_management(config, settings):
     """Affiche la section gestion de configuration"""
-    with st.expander("⚙️ Gestion Configuration", expanded=False):
+    with st.expander("Gestion Configuration", expanded=False):
         st.write("**Configuration actuelle:**")
         st.write(f"- App: {config.app_name} v{config.version}")
         st.write(f"- Provider: {settings['llm_provider']}")
         st.write(f"- Modèle: {settings['model_name']}")
-        st.write(f"- Mémoire: {'✅' if settings['enable_conversation_memory'] else '❌'}")
+        st.write(f"- Mémoire: {'Oui' if settings['enable_conversation_memory'] else 'Non'}")
         
         col1, col2 = st.columns(2)
         
@@ -141,10 +141,10 @@ def render_configuration_management(config, settings):
         reload_clicked = False
         
         with col1:
-            save_clicked = st.button("💾 Sauvegarder Config", help="Sauvegarder la configuration actuelle", key="save_config_btn")
+            save_clicked = st.button("Sauvegarder Config", help="Sauvegarder la configuration actuelle", key="save_config_btn")
         
         with col2:
-            reload_clicked = st.button("🔄 Recharger Config", help="Recharger depuis le fichier", key="reload_config_btn")
+            reload_clicked = st.button("Recharger Config", help="Recharger depuis le fichier", key="reload_config_btn")
         
         if save_clicked:
             # Mettre à jour la config avec les settings actuels
@@ -210,13 +210,13 @@ def render_sidebar(config, t, session_state):
     st.image("assets/IVECO_BUS_Logo_RGB_Web.svg", width=220)
 
     # ------------------- Navigation -------------------
-    st.markdown("### 🧭 Navigation")
+    st.markdown("### Navigation")
 
-    available_pages = ["💬 Chat", "📝 Summary", "⚙️ Configuration", "🗃️ Database"]
+    available_pages = ["Chat", "Summary", "Configuration", "Database"]
 
     # Initialiser la page sélectionnée
     if 'selected_page' not in session_state:
-        session_state.selected_page = "💬 Chat"
+        session_state.selected_page = "Chat"
 
     selected_page = st.selectbox(
         "Aller à la page:",
@@ -230,17 +230,17 @@ def render_sidebar(config, t, session_state):
         st.rerun()
 
     page_descriptions = {
-        "💬 Chat": "Interface conversationnelle RAG",
-        "📝 Summary": "Résumés intelligents de réglementations",
-        "⚙️ Configuration": "Paramètres LLM et RAG", 
-        "🗃️ Database": "Gestion ChromaDB (Admin)"
+        "Chat": "Interface conversationnelle RAG",
+        "Summary": "Résumés intelligents de réglementations",
+        "Configuration": "Paramètres LLM et RAG", 
+        "Database": "Gestion ChromaDB (Admin)"
     }
 
     if selected_page in page_descriptions:
         st.caption(page_descriptions[selected_page])
 
-    if selected_page == "🗃️ Database":
-        st.warning("⚠️ Accès administrateur requis")
+    if selected_page == "Database":
+        st.warning("Accès administrateur requis")
 
     st.divider()
 

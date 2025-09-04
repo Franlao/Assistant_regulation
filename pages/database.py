@@ -27,9 +27,9 @@ try:
     )
     # Vérifier que la fonction est bien disponible
     if 'check_database_health' not in locals():
-        st.error("❌ La fonction check_database_health n'a pas été importée correctement")
+        st.error("[ERREUR] La fonction check_database_health n'a pas été importée correctement")
 except ImportError as e:
-    st.error(f"❌ Erreur d'import des modules Database: {e}")
+    st.error(f"[ERREUR] Erreur d'import des modules Database: {e}")
     # Définir une fonction de fallback
     def check_database_health():
         return {
@@ -41,8 +41,12 @@ except ImportError as e:
 
 def render_database_status():
     """Affiche l'état actuel de la base de données"""
-    st.subheader("📊 État de la Base de Données")
-    
+    #st.subheader("État de la Base de Données")
+    st.markdown("""
+    <div style="padding: 2rem 0;">
+        <h2 style="color: #343a40; font-weight: 360; font-size: 2rem; margin: 0;">État de la Base de Données</h2>
+    </div>
+    """, unsafe_allow_html=True)
     try:
         health = check_database_health()
         
@@ -50,7 +54,7 @@ def render_database_status():
         col1, col2, col3, col4 = st.columns(4)
         
         with col1:
-            status_icon = "🟢" if health.get("healthy", False) else "🔴"
+            status_icon = "[OK]" if health.get("healthy", False) else "[ERREUR]"
             status_text = "Sain" if health.get("healthy", False) else "Problème"
             st.metric("État Général", f"{status_icon} {status_text}")
         
@@ -73,7 +77,7 @@ def render_database_status():
             
             for col_type, status in health['collections_status'].items():
                 if isinstance(status, dict):
-                    health_icon = "✅" if status.get('healthy', False) else "❌"
+                    health_icon = "[OK]" if status.get('healthy', False) else "[ERREUR]"
                     count = status.get('count', 0)
                     exists = status.get('exists', False)
                     
@@ -83,21 +87,25 @@ def render_database_status():
         # Problèmes détectés
         issues = health.get('issues', [])
         if issues:
-            st.warning("⚠️ **Problèmes détectés:**")
+            st.warning("**Problèmes détectés:**")
             for issue in issues:
                 st.write(f"  • {issue}")
         
         return health
         
     except Exception as e:
-        st.error(f"❌ Impossible de vérifier l'état de la base: {e}")
+        st.error(f"[ERREUR] Impossible de vérifier l'état de la base: {e}")
         return {"healthy": False, "error": str(e)}
 
 
 def render_pdf_ingestion():
     """Interface d'ingestion de PDFs avec support asynchrone"""
-    st.subheader("📥 Ingestion de Documents PDF")
-    
+    #st.subheader("Ingestion de Documents PDF")
+    st.markdown("""
+    <div style="padding: 2rem 0;">
+        <h2 style="color: #343a40; font-weight: 360; font-size: 2rem; margin: 0;">Ingestion de Documents PDF</h2>
+    </div>
+    """, unsafe_allow_html=True)
     # Moniteur des tâches en cours avec rafraîchissement automatique
     task_manager = get_task_manager()
     active_tasks = task_manager.get_active_tasks()
@@ -106,11 +114,11 @@ def render_pdf_ingestion():
         col1, col2 = st.columns([3, 1])
         
         with col1:
-            with st.expander(f"🔄 {len(active_tasks)} tâche(s) en cours", expanded=True):
+            with st.expander(f"[ACTIF] {len(active_tasks)} tâche(s) en cours", expanded=True):
                 render_task_monitor(show_completed=False, key_prefix="ingestion_active")
         
         with col2:
-            if st.button("🔄 Actualiser", help="Rafraîchir l'état des tâches"):
+            if st.button("Actualiser", help="Rafraîchir l'état des tâches"):
                 st.rerun()
             
             # Auto-refresh toutes les 10 secondes si des tâches sont actives
@@ -121,7 +129,7 @@ def render_pdf_ingestion():
                 st.session_state.last_auto_refresh = time.time()
                 st.rerun()
     
-    tab1, tab2, tab3 = st.tabs(["📤 Upload Fichiers", "📁 Dossier Local", "📊 Historique"])
+    tab1, tab2, tab3 = st.tabs(["Upload Fichiers", "Dossier Local", "Historique"])
     
     with tab1:
         st.markdown("**Upload et traitement asynchrone de fichiers PDF**")
@@ -135,7 +143,7 @@ def render_pdf_ingestion():
         )
         
         if uploaded_files:
-            st.success(f"✅ {len(uploaded_files)} fichier(s) sélectionné(s)")
+            st.success(f"[OK] {len(uploaded_files)} fichier(s) sélectionné(s)")
             
             col1, col2 = st.columns(2)
             with col1:
@@ -146,11 +154,11 @@ def render_pdf_ingestion():
             col_btn1, col_btn2 = st.columns([1, 3])
             
             with col_btn1:
-                if st.button("🚀 Traiter (Async)", type="primary", help="Lance le traitement en arrière-plan"):
+                if st.button("Traiter (Async)", type="primary", help="Lance le traitement en arrière-plan"):
                     launch_async_upload(uploaded_files, text_only, overwrite)
             
             with col_btn2:
-                if st.button("⚡ Traitement Immédiat", help="Traitement synchrone (bloquant)"):
+                if st.button("Traitement Immédiat", help="Traitement synchrone (bloquant)"):
                     process_uploaded_files(uploaded_files, text_only, overwrite)
     
     with tab2:
@@ -173,11 +181,11 @@ def render_pdf_ingestion():
         col_btn1, col_btn2 = st.columns([1, 3])
         
         with col_btn1:
-            if st.button("📁 Ingérer (Async)", type="primary", help="Lance l'ingestion en arrière-plan"):
+            if st.button("Ingérer (Async)", type="primary", help="Lance l'ingestion en arrière-plan"):
                 launch_async_folder_ingestion(folder_path, text_only_folder, parallel, workers)
         
         with col_btn2:
-            if st.button("⚡ Ingestion Immédiate", help="Ingestion synchrone (bloquante)"):
+            if st.button("Ingestion Immédiate", help="Ingestion synchrone (bloquante)"):
                 process_folder_ingestion(folder_path, text_only_folder, parallel, workers)
     
     with tab3:
@@ -207,14 +215,14 @@ def launch_async_upload(uploaded_files: List, text_only: bool, overwrite: bool):
             overwrite=overwrite
         )
         
-        st.success(f"🚀 Tâche lancée! ID: {task_id}")
-        st.info("💡 Le traitement se fait en arrière-plan. Vous pouvez continuer à utiliser l'application.")
+        st.success(f"[LANCE] Tâche lancée! ID: {task_id}")
+        st.info("[INFO] Le traitement se fait en arrière-plan. Vous pouvez continuer à utiliser l'application.")
         
         # Forcer un rafraîchissement pour voir la tâche
         st.rerun()
         
     except Exception as e:
-        st.error(f"❌ Erreur de lancement: {e}")
+        st.error(f"[ERREUR] Erreur de lancement: {e}")
 
 
 def launch_async_folder_ingestion(folder_path: str, text_only: bool, parallel: bool, workers: int):
@@ -231,14 +239,14 @@ def launch_async_folder_ingestion(folder_path: str, text_only: bool, parallel: b
             workers=workers
         )
         
-        st.success(f"🚀 Tâche lancée! ID: {task_id}")
-        st.info("💡 L'ingestion se fait en arrière-plan. Vous pouvez continuer à utiliser l'application.")
+        st.success(f"[LANCE] Tâche lancée! ID: {task_id}")
+        st.info("[INFO] L'ingestion se fait en arrière-plan. Vous pouvez continuer à utiliser l'application.")
         
         # Forcer un rafraîchissement pour voir la tâche
         st.rerun()
         
     except Exception as e:
-        st.error(f"❌ Erreur de lancement: {e}")
+        st.error(f"[ERREUR] Erreur de lancement: {e}")
 
 
 def process_uploaded_files(uploaded_files: List, text_only: bool, overwrite: bool):
@@ -278,13 +286,13 @@ def process_uploaded_files(uploaded_files: List, text_only: bool, overwrite: boo
             )
             
             progress_bar.progress(1.0)
-            status_text.text("✅ Traitement terminé!")
+            status_text.text("[OK] Traitement terminé!")
             
             st.success(f"Upload terminé: {results['successful_uploads']}/{results['total_files']} fichiers")
-            st.info(f"📊 Nouveaux chunks: {results['total_chunks_added']:,}")
+            st.info(f"[STATS] Nouveaux chunks: {results['total_chunks_added']:,}")
             
             if results.get('errors'):
-                with st.expander("⚠️ Erreurs rencontrées", expanded=False):
+                with st.expander("[ATTENTION] Erreurs rencontrées", expanded=False):
                     for error in results['errors'][:10]:
                         st.write(f"• {error}")
         
@@ -302,20 +310,20 @@ def process_uploaded_files(uploaded_files: List, text_only: bool, overwrite: boo
                     success_count += 1
             
             progress_bar.progress(1.0)
-            status_text.text("✅ Ingestion terminée!")
+            status_text.text("[OK] Ingestion terminée!")
             
             st.success(f"Ingestion terminée: {success_count}/{len(saved_paths)} fichiers")
         
         # Les fichiers sont maintenant dans Data/ de façon permanente
         
     except Exception as e:
-        st.error(f"❌ Erreur de traitement: {e}")
+        st.error(f"[ERREUR] Erreur de traitement: {e}")
 
 
 def process_folder_ingestion(folder_path: str, text_only: bool, parallel: bool, workers: int):
     """Traite l'ingestion depuis un dossier"""
     if not os.path.exists(folder_path):
-        st.error(f"❌ Le dossier {folder_path} n'existe pas")
+        st.error(f"[ERREUR] Le dossier {folder_path} n'existe pas")
         return
     
     try:
@@ -330,33 +338,33 @@ def process_folder_ingestion(folder_path: str, text_only: bool, parallel: bool, 
             )
             
             if success:
-                st.success("✅ Ingestion terminée!")
+                st.success("[OK] Ingestion terminée!")
                 
                 # Statistiques
                 stats = manager.verify_ingestion()
-                with st.expander("📊 Statistiques post-ingestion", expanded=True):
+                with st.expander("[STATS] Statistiques post-ingestion", expanded=True):
                     for key, value in stats.items():
                         st.write(f"**{key}:** {value}")
             else:
-                st.error("❌ Erreurs lors de l'ingestion")
+                st.error("[ERREUR] Erreurs lors de l'ingestion")
                 
     except Exception as e:
-        st.error(f"❌ Erreur: {e}")
+        st.error(f"[ERREUR] Erreur: {e}")
 
 
 def render_database_summary():
     """Interface de résumé de base de données"""
-    st.subheader("📋 Résumé de la Base")
+    st.subheader("[RESUME] Résumé de la Base")
     
     col1, col2 = st.columns(2)
     
     with col1:
-        if st.button("📊 Générer Résumé", type="primary"):
+        if st.button("[STATS] Générer Résumé", type="primary"):
             generate_summary()
     
     with col2:
         format_type = st.selectbox("Format Export", ["json", "csv", "txt"])
-        if st.button("💾 Exporter"):
+        if st.button("[EXPORT] Exporter"):
             export_summary(format_type)
 
 
@@ -368,7 +376,7 @@ def generate_summary():
             summary = manager.get_complete_summary()
             
             if not summary:
-                st.warning("⚠️ Aucune donnée trouvée")
+                st.warning("[ATTENTION] Aucune donnée trouvée")
                 return
             
             # Statistiques générales
@@ -387,11 +395,11 @@ def generate_summary():
             
             # Collections
             collections = summary.get("collections", {})
-            st.markdown("**📚 État des Collections:**")
+            st.markdown("**[COLLECTIONS] État des Collections:**")
             
             for col_type, col_info in collections.items():
                 if isinstance(col_info, dict):
-                    status = "✅" if col_info.get("exists", False) else "❌"
+                    status = "[OK]" if col_info.get("exists", False) else "[ERREUR]"
                     count = col_info.get("count", 0)
                     st.write(f"{status} **{col_type.capitalize()}:** {count:,} documents")
             
@@ -402,17 +410,17 @@ def generate_summary():
                 
                 col1, col2 = st.columns(2)
                 with col1:
-                    st.success(f"🏆 **Plus grande:** {largest['code']} ({largest['chunks_count']:,})")
+                    st.success(f"[PLUS-GRANDE] **Plus grande:** {largest['code']} ({largest['chunks_count']:,})")
                 with col2:
                     if smallest:
-                        st.info(f"📝 **Plus petite:** {smallest['code']} ({smallest['chunks_count']})")
+                        st.info(f"[PLUS-PETITE] **Plus petite:** {smallest['code']} ({smallest['chunks_count']})")
             
             # Liste des réglementations (aperçu)
             regulations = summary.get("regulations", {})
             reg_list = regulations.get("regulations_list", [])[:15]
             
             if reg_list:
-                st.markdown("**⚖️ Réglementations Disponibles:**")
+                st.markdown("**[REGLEMENTS] Réglementations Disponibles:**")
                 
                 # Affichage en colonnes
                 cols = st.columns(3)
@@ -425,7 +433,7 @@ def generate_summary():
                     st.write(f"... et {total_regs - 15} autres")
                     
     except Exception as e:
-        st.error(f"❌ Erreur: {e}")
+        st.error(f"[ERREUR] Erreur: {e}")
 
 
 def export_summary(format_type: str):
@@ -442,7 +450,7 @@ def export_summary(format_type: str):
         if os.path.exists(filename):
             with open(filename, "rb") as f:
                 st.download_button(
-                    label=f"📥 Télécharger {filename}",
+                    label=f"[TELECHARGER] Télécharger {filename}",
                     data=f.read(),
                     file_name=filename,
                     mime=f"application/{format_type}"
@@ -450,12 +458,12 @@ def export_summary(format_type: str):
             os.remove(filename)
             
     except Exception as e:
-        st.error(f"❌ Erreur d'export: {e}")
+        st.error(f"[ERREUR] Erreur d'export: {e}")
 
 
 def render_regulation_search():
     """Interface de recherche par réglementation"""
-    st.subheader("🔍 Recherche par Réglementation")
+    st.subheader("[RECHERCHE] Recherche par Réglementation")
     
     col1, col2 = st.columns([3, 1])
     
@@ -470,7 +478,7 @@ def render_regulation_search():
         detailed = st.checkbox("Recherche détaillée", value=False)
     
     if regulation_code:
-        if st.button("🔍 Rechercher", type="primary"):
+        if st.button("[RECHERCHE] Rechercher", type="primary"):
             search_regulation(regulation_code, detailed)
 
 
@@ -488,16 +496,16 @@ def search_regulation(regulation_code: str, detailed: bool):
                 display_summary_result(result)
                 
     except Exception as e:
-        st.error(f"❌ Erreur de recherche: {e}")
+        st.error(f"[ERREUR] Erreur de recherche: {e}")
 
 
 def display_summary_result(result: Dict):
     """Affiche le résultat résumé"""
     if not result.get("found", False):
-        st.error(f"❌ '{result.get('regulation_code', 'N/A')}' non trouvée")
+        st.error(f"[NON-TROUVEE] '{result.get('regulation_code', 'N/A')}' non trouvée")
         return
     
-    st.success(f"✅ '{result['regulation_code']}' trouvée")
+    st.success(f"[TROUVEE] '{result['regulation_code']}' trouvée")
     
     col1, col2, col3, col4 = st.columns(4)
     with col1:
@@ -513,10 +521,10 @@ def display_summary_result(result: Dict):
 def display_detailed_result(result: Dict):
     """Affiche le résultat détaillé"""
     if not result.get("text_chunks"):
-        st.error(f"❌ '{result.get('regulation_code', 'N/A')}' non trouvée")
+        st.error(f"[NON-TROUVEE] '{result.get('regulation_code', 'N/A')}' non trouvée")
         return
     
-    st.success(f"✅ '{result['regulation_code']}' trouvée")
+    st.success(f"[TROUVEE] '{result['regulation_code']}' trouvée")
     
     # Statistiques détaillées
     stats = result.get("statistics", {})
@@ -534,7 +542,7 @@ def display_detailed_result(result: Dict):
     # Analyse du contenu
     content = result.get("content_analysis", {})
     if any(content.values()):
-        st.markdown("**📋 Analyse du Contenu:**")
+        st.markdown("**[ANALYSE] Analyse du Contenu:**")
         
         col1, col2, col3, col4 = st.columns(4)
         with col1:
@@ -547,27 +555,27 @@ def display_detailed_result(result: Dict):
             st.metric("Références", content.get("references_count", 0))
     
     # Export des données
-    if st.button("💾 Exporter Données"):
+    if st.button("[EXPORT] Exporter Données"):
         try:
             reg_code = result.get("regulation_code", "unknown")
             json_str = json.dumps(result, indent=2, ensure_ascii=False)
             
             st.download_button(
-                label=f"📥 Télécharger {reg_code}_data.json",
+                label=f"[TELECHARGER] Télécharger {reg_code}_data.json",
                 data=json_str,
                 file_name=f"{reg_code}_data.json",
                 mime="application/json"
             )
         except Exception as e:
-            st.error(f"❌ Erreur d'export: {e}")
+            st.error(f"[ERREUR] Erreur d'export: {e}")
 
 
 def render_regulations_list():
     """Interface de listage des réglementations"""
-    st.subheader("📋 Liste des Réglementations")
+    st.subheader("[LISTE] Liste des Réglementations")
     
     # Filtres
-    with st.expander("🔧 Filtres Avancés", expanded=False):
+    with st.expander("[FILTRES] Filtres Avancés", expanded=False):
         col1, col2 = st.columns(2)
         
         with col1:
@@ -590,11 +598,11 @@ def render_regulations_list():
     col1, col2 = st.columns(2)
     
     with col1:
-        if st.button("📋 Lister Toutes", type="primary"):
+        if st.button("[LISTE] Lister Toutes", type="primary"):
             list_all_regulations()
     
     with col2:
-        if st.button("🔍 Appliquer Filtres"):
+        if st.button("[FILTRE] Appliquer Filtres"):
             list_filtered_regulations(min_chunks, max_chunks, has_images, has_tables, contains)
 
 
@@ -606,7 +614,7 @@ def list_all_regulations():
             data = manager.get_all_regulations()
             display_regulations_table(data)
     except Exception as e:
-        st.error(f"❌ Erreur: {e}")
+        st.error(f"[ERREUR] Erreur: {e}")
 
 
 def list_filtered_regulations(min_chunks, max_chunks, has_images, has_tables, contains):
@@ -623,7 +631,7 @@ def list_filtered_regulations(min_chunks, max_chunks, has_images, has_tables, co
                 contains_text=contains if contains else None
             )
             
-            st.write(f"🔍 **{len(filtered)} réglementations** correspondent aux critères")
+            st.write(f"[RESULTATS] **{len(filtered)} réglementations** correspondent aux critères")
             
             if filtered:
                 df = pd.DataFrame({"Code Réglementation": filtered})
@@ -632,7 +640,7 @@ def list_filtered_regulations(min_chunks, max_chunks, has_images, has_tables, co
                 st.info("Aucun résultat")
                 
     except Exception as e:
-        st.error(f"❌ Erreur: {e}")
+        st.error(f"[ERREUR] Erreur: {e}")
 
 
 def display_regulations_table(data: Dict):
@@ -662,7 +670,7 @@ def display_regulations_table(data: Dict):
         
         # Statistiques générales
         stats = data.get("statistics", {})
-        st.markdown("**📊 Résumé:**")
+        st.markdown("**[RESUME] Résumé:**")
         
         col1, col2, col3 = st.columns(3)
         with col1:
@@ -677,24 +685,24 @@ def display_regulations_table(data: Dict):
         
         # Export CSV
         csv = df.to_csv(index=False)
-        st.download_button("💾 CSV", csv, "regulations.csv", "text/csv")
+        st.download_button("[EXPORT] CSV", csv, "regulations.csv", "text/csv")
         
     except Exception as e:
-        st.error(f"❌ Erreur d'affichage: {e}")
+        st.error(f"[ERREUR] Erreur d'affichage: {e}")
 
 
 def render_database_cleanup():
     """Interface de nettoyage"""
-    st.subheader("🗑️ Nettoyage de la Base")
+    st.subheader("[NETTOYAGE] Nettoyage de la Base")
     
-    st.warning("⚠️ **ATTENTION:** Ces opérations suppriment définitivement des données!")
+    st.warning("[ATTENTION] **ATTENTION:** Ces opérations suppriment définitivement des données!")
     
-    tab1, tab2, tab3 = st.tabs(["🗂️ Collections", "🎯 Sélectif", "💥 Complet"])
+    tab1, tab2, tab3 = st.tabs(["[COLLECTIONS] Collections", "[SELECTIF] Sélectif", "[COMPLET] Complet"])
     
     with tab1:
         collection = st.selectbox("Collection à vider", ["text", "images", "tables", "toutes"])
         
-        if st.button("🗑️ Vider Collection", type="secondary"):
+        if st.button("[VIDER] Vider Collection", type="secondary"):
             cleanup_collections(collection)
     
     with tab2:
@@ -703,7 +711,7 @@ def render_database_cleanup():
             placeholder="R046\nECE R107\nUN R048"
         )
         
-        if regulations and st.button("🗑️ Supprimer Sélection", type="secondary"):
+        if regulations and st.button("[SUPPRIMER] Supprimer Sélection", type="secondary"):
             reg_codes = [code.strip() for code in regulations.split('\n') if code.strip()]
             cleanup_selective(reg_codes)
     
@@ -711,11 +719,11 @@ def render_database_cleanup():
         col1, col2 = st.columns(2)
         
         with col1:
-            if st.button("🗑️ Vider Tout", type="secondary"):
+            if st.button("[VIDER-TOUT] Vider Tout", type="secondary"):
                 cleanup_complete()
         
         with col2:
-            if st.button("💥 Supprimer Fichiers", type="secondary"):
+            if st.button("[SUPPR-FICHIERS] Supprimer Fichiers", type="secondary"):
                 cleanup_files()
 
 
@@ -727,20 +735,20 @@ def cleanup_collections(collection: str):
             
             if collection == "toutes":
                 results = manager.clear_all_collections()
-                st.success("✅ Toutes les collections vidées")
+                st.success("[OK] Toutes les collections vidées")
                 
                 for col_type, success in results.items():
-                    status = "✅" if success else "❌"
+                    status = "[OK]" if success else "[ERREUR]"
                     st.write(f"{status} {col_type}")
             else:
                 success = manager.clear_collection(collection)
                 if success:
-                    st.success(f"✅ Collection {collection} vidée")
+                    st.success(f"[OK] Collection {collection} vidée")
                 else:
-                    st.error(f"❌ Erreur avec {collection}")
+                    st.error(f"[ERREUR] Erreur avec {collection}")
                     
     except Exception as e:
-        st.error(f"❌ Erreur: {e}")
+        st.error(f"[ERREUR] Erreur: {e}")
 
 
 def cleanup_selective(reg_codes: List[str]):
@@ -750,24 +758,24 @@ def cleanup_selective(reg_codes: List[str]):
             manager = DatabaseCleanupManager()
             results = manager.selective_cleanup(reg_codes)
             
-            st.success(f"✅ {results['deleted_documents']} documents supprimés")
+            st.success(f"[OK] {results['deleted_documents']} documents supprimés")
             
             for reg in results.get('regulations_processed', []):
                 st.write(f"• {reg['code']}: {reg['deleted_count']} documents")
             
             if results.get('errors'):
-                with st.expander("⚠️ Erreurs", expanded=False):
+                with st.expander("[ERREURS] Erreurs", expanded=False):
                     for error in results['errors']:
                         st.write(f"• {error}")
                         
     except Exception as e:
-        st.error(f"❌ Erreur: {e}")
+        st.error(f"[ERREUR] Erreur: {e}")
 
 
 def cleanup_complete():
     """Nettoyage complet avec confirmation"""
     if not st.session_state.get("confirm_cleanup", False):
-        st.error("⚠️ Cette action supprimera TOUTES les données!")
+        st.error("[ATTENTION] Cette action supprimera TOUTES les données!")
         if st.checkbox("Je confirme vouloir tout supprimer", key="confirm_cleanup"):
             st.rerun()
         return
@@ -779,24 +787,24 @@ def cleanup_complete():
             results = manager.clear_all_collections()
             cache_ok = manager.clean_cache_files()
             
-            st.success("✅ Nettoyage complet terminé!")
+            st.success("[OK] Nettoyage complet terminé!")
             
             for col_type, success in results.items():
-                status = "✅" if success else "❌"
+                status = "[OK]" if success else "[ERREUR]"
                 st.write(f"{status} {col_type}")
             
-            st.write(f"{'✅' if cache_ok else '❌'} Cache nettoyé")
+            st.write(f"{'[OK]' if cache_ok else '[ERREUR]'} Cache nettoyé")
             
         st.session_state["confirm_cleanup"] = False
         
     except Exception as e:
-        st.error(f"❌ Erreur: {e}")
+        st.error(f"[ERREUR] Erreur: {e}")
 
 
 def cleanup_files():
     """Suppression des fichiers avec confirmation"""
     if not st.session_state.get("confirm_files", False):
-        st.error("⚠️ Suppression PHYSIQUE des fichiers DB!")
+        st.error("[ATTENTION] Suppression PHYSIQUE des fichiers DB!")
         if st.checkbox("Je confirme la suppression des fichiers", key="confirm_files"):
             st.rerun()
         return
@@ -807,14 +815,14 @@ def cleanup_files():
             success = manager.delete_database_files(force=True)
             
             if success:
-                st.success("✅ Fichiers supprimés!")
+                st.success("[OK] Fichiers supprimés!")
             else:
-                st.error("❌ Erreur de suppression")
+                st.error("[ERREUR] Erreur de suppression")
                 
         st.session_state["confirm_files"] = False
         
     except Exception as e:
-        st.error(f"❌ Erreur: {e}")
+        st.error(f"[ERREUR] Erreur: {e}")
 
 
 def main():
@@ -826,11 +834,7 @@ def main():
     
     # Initialisation
     initialize_session_state()
-    
-    # Titre
-    st.title("🗃️ Gestionnaire de Base de Données")
-    st.markdown("**Interface d'administration ChromaDB** - Accès administrateur requis")
-    
+
     # État de la base
     health = render_database_status()
     
@@ -838,11 +842,11 @@ def main():
     
     # Navigation par onglets
     tab1, tab2, tab3, tab4, tab5 = st.tabs([
-        "📥 Ingestion",
-        "📊 Résumé", 
-        "🔍 Recherche",
-        "📋 Liste",
-        "🗑️ Nettoyage"
+        "[INGESTION] Ingestion",
+        "[RESUME] Résumé", 
+        "[RECHERCHE] Recherche",
+        "[LISTE] Liste",
+        "[NETTOYAGE] Nettoyage"
     ])
     
     with tab1:
@@ -862,9 +866,9 @@ def main():
     
     # Footer d'aide
     st.divider()
-    with st.expander("💡 Guide d'utilisation", expanded=False):
+    with st.expander("[GUIDE] Guide d'utilisation", expanded=False):
         st.markdown("""
-        **🎯 Conseils pour une utilisation optimale:**
+        **[CONSEILS] Conseils pour une utilisation optimale:**
         
         **Ingestion:**
         - Utilisez "Texte seulement" pour un traitement plus rapide

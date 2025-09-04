@@ -174,9 +174,9 @@ def load_saved_summaries() -> List[Dict]:
 def render_summary_generator():
     """Interface de génération de résumés"""
     st.markdown("""
-    <div style="background: linear-gradient(90deg, #FF5722, #FF9800); padding: 1rem; border-radius: 10px; margin-bottom: 1.5rem;">
-        <h3 style="color: white; margin: 0; font-weight: 600;">Générateur de Résumés Intelligents</h3>
-        <p style="color: rgba(255,255,255,0.9); margin: 0.5rem 0 0 0; font-size: 0.9rem;">Synthèses proportionnelles de réglementations complètes</p>
+    <div style="background: #f8f9fa; border: 1px solid #e9ecef; padding: 1.5rem; border-radius: 4px; margin-bottom: 2rem;">
+        <h3 style="color: #343a40; margin: 0; font-weight: 500;">Générateur de Résumés</h3>
+        <p style="color: #6c757d; margin: 0.5rem 0 0 0; font-size: 0.95rem;">Synthèses automatiques de réglementations</p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -222,10 +222,10 @@ def render_summary_generator():
             model_name = st.text_input("Modèle Ollama", value="llama3.2", help="Ex: llama3.2, codellama")
     
     # Informations sur la réglementation sélectionnée
-    st.markdown("""
-    <div style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 8px; border-left: 4px solid #FF5722; margin: 1rem 0;">
-    """, unsafe_allow_html=True)
-    
+    #st.markdown("""
+    #<div style="background: #ffffff; border: 1px solid #dee2e6; padding: 1.5rem; border-radius: 4px; margin: 1.5rem 0;">
+    #""", unsafe_allow_html=True)
+
     col1, col2, col3 = st.columns(3)
     
     with col1:
@@ -302,9 +302,9 @@ def render_summary_generator():
                 
                 st.success(f"Résumé généré avec succès en {summary_result.processing_time:.1f}s!")
                 
-                # Statistiques finales épurées
+                # Statistiques finales
                 st.markdown("""
-                <div style="background: rgba(76, 175, 80, 0.1); padding: 1rem; border-radius: 8px; border: 1px solid rgba(76, 175, 80, 0.3); margin: 1rem 0;">
+                <div style="background: #f8f9fa; border: 1px solid #28a745; padding: 1.5rem; border-radius: 4px; margin: 1.5rem 0;">
                 """, unsafe_allow_html=True)
                 
                 col1, col2, col3 = st.columns(3)
@@ -337,15 +337,15 @@ def render_current_summary():
     
     summary = st.session_state.current_summary
     
-    # En-tête moderne
+    # En-tête sobre
     st.markdown(f"""
-    <div style="background: linear-gradient(135deg, #2E7D32, #4CAF50); padding: 1.5rem; border-radius: 10px; margin: 2rem 0 1rem 0;">
-        <h3 style="color: white; margin: 0; font-weight: 600;">Résumé: {summary.regulation_code}</h3>
-        <div style="display: flex; gap: 2rem; margin-top: 1rem; flex-wrap: wrap;">
-            <span style="color: rgba(255,255,255,0.9);"><strong>{summary.original_pages}</strong> pages originales</span>
-            <span style="color: rgba(255,255,255,0.9);"><strong>{summary.summary_length:,}</strong> mots</span>
-            <span style="color: rgba(255,255,255,0.9);"><strong>{summary.summary_ratio:.1%}</strong> compression</span>
-            <span style="color: rgba(255,255,255,0.9);"><strong>{summary.processing_time:.1f}s</strong></span>
+    <div style="background: #ffffff; border: 1px solid #dee2e6; padding: 2rem; border-radius: 4px; margin: 2rem 0;">
+        <h3 style="color: #343a40; margin: 0 0 1rem 0; font-weight: 500;">Résumé : {summary.regulation_code}</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem;">
+            <div><strong>{summary.original_pages}</strong><br><small style="color: #6c757d;">pages originales</small></div>
+            <div><strong>{summary.summary_length:,}</strong><br><small style="color: #6c757d;">mots</small></div>
+            <div><strong>{summary.summary_ratio:.1%}</strong><br><small style="color: #6c757d;">compression</small></div>
+            <div><strong>{summary.processing_time:.1f}s</strong><br><small style="color: #6c757d;">temps</small></div>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -360,18 +360,18 @@ def render_current_summary():
                 del st.session_state.summary_saved_path
             st.rerun()
     
-    # Contenu du résumé dans une carte moderne
+    # Contenu du résumé
     st.markdown("""
-    <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 1.5rem; margin: 1rem 0;">
+    <div style="background: #ffffff; border: 1px solid #e9ecef; border-radius: 4px; padding: 2rem; margin: 1.5rem 0;">
     """, unsafe_allow_html=True)
     
     st.markdown(summary.summary_text, unsafe_allow_html=True)
     
     st.markdown("</div>", unsafe_allow_html=True)
     
-    # Conseil utilisateur discret
+    # Conseil utilisateur
     st.markdown(
-        '<p style="color: rgba(255,255,255,0.6); font-size: 0.85rem; text-align: center; margin-top: 1rem;">'
+        '<p style="color: #6c757d; font-size: 0.9rem; text-align: center; margin-top: 1.5rem;">'
         'Utilisez Ctrl+A puis Ctrl+C pour copier le résumé'
         '</p>', 
         unsafe_allow_html=True
@@ -396,9 +396,9 @@ def render_current_summary():
 def render_saved_summaries():
     """Affiche les résumés sauvegardés"""
     st.markdown("""
-    <div style="background: linear-gradient(90deg, #1976D2, #42A5F5); padding: 1rem; border-radius: 10px; margin-bottom: 1.5rem;">
-        <h3 style="color: white; margin: 0; font-weight: 600;">Historique des Résumés</h3>
-        <p style="color: rgba(255,255,255,0.9); margin: 0.5rem 0 0 0; font-size: 0.9rem;">Résumés précédemment générés</p>
+    <div style="background: #f8f9fa; border: 1px solid #e9ecef; padding: 1.5rem; border-radius: 4px; margin-bottom: 2rem;">
+        <h3 style="color: #343a40; margin: 0; font-weight: 500;">Historique des Résumés</h3>
+        <p style="color: #6c757d; margin: 0.5rem 0 0 0; font-size: 0.95rem;">Résumés précédemment générés</p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -406,8 +406,8 @@ def render_saved_summaries():
     
     if not summaries:
         st.markdown("""
-        <div style="background: rgba(158, 158, 158, 0.1); padding: 2rem; border-radius: 8px; text-align: center; border: 1px dashed rgba(158, 158, 158, 0.3);">
-            <p style="color: rgba(255,255,255,0.7); margin: 0;">Aucun résumé sauvegardé</p>
+        <div style="background: #f8f9fa; padding: 2rem; border-radius: 4px; text-align: center; border: 1px dashed #dee2e6;">
+            <p style="color: #6c757d; margin: 0;">Aucun résumé sauvegardé</p>
         </div>
         """, unsafe_allow_html=True)
         return
@@ -486,36 +486,38 @@ def main():
     """Page principale des résumés de réglementations"""
     st.set_page_config(
         page_title="Résumés Intelligents - Assistant Réglementaire",
-        page_icon="📄",
         layout="wide"
     )
     
-    # Titre moderne
+    # Conteneur principal avec classe CSS
+    st.markdown('<div class="summary-page-container">', unsafe_allow_html=True)
+    
+    # Titre sobre
     st.markdown("""
-    <div style="text-align: center; padding: 2rem 0 1rem 0;">
-        <h1 style="color: white; font-weight: 700; font-size: 2.5rem; margin: 0;">Résumés Intelligents</h1>
-        <p style="color: rgba(255,255,255,0.8); font-size: 1.1rem; margin: 0.5rem 0 0 0;">Synthèses automatiques de réglementations</p>
+    <div style="text-align: center; padding: 2rem 0;">
+        <h1 style="color: #343a40; font-weight: 400; font-size: 2rem; margin: 0;">Résumés de Réglementations</h1>
+        <p style="color: #6c757d; font-size: 1rem; margin: 0.5rem 0 0 0;">Synthèses automatiques de documents</p>
     </div>
     """, unsafe_allow_html=True)
     
-    # Information sur le service (plus discrète)
+    # Information sur le service
     with st.expander("Comment ça marche", expanded=False):
         st.markdown("""
-        **Fonctionnement:**
-        • Analyse intelligente des documents réglementaires
-        • Résumés proportionnels à la taille du document  
-        • Structure hiérarchique préservée
-        • Informations techniques conservées
+        **Fonctionnement :**
+        - Analyse intelligente des documents réglementaires
+        - Résumés proportionnels à la taille du document  
+        - Structure hiérarchique préservée
+        - Informations techniques conservées
         
-        **Tailles de résumé:**
-        • ≤15 pages → 1 page de résumé
-        • ≤30 pages → 2 pages de résumé  
-        • ≤60 pages → 3-4 pages de résumé
-        • ≤100 pages → 5-7 pages de résumé
-        • >100 pages → 8-12 pages maximum
+        **Tailles de résumé :**
+        - 15 pages ou moins : 1 page de résumé
+        - 30 pages ou moins : 2 pages de résumé  
+        - 60 pages ou moins : 3-4 pages de résumé
+        - 100 pages ou moins : 5-7 pages de résumé
+        - Plus de 100 pages : 8-12 pages maximum
         """)
     
-    # Onglets épurés
+    # Onglets
     tab1, tab2 = st.tabs(["Générateur", "Historique"])
     
     with tab1:
@@ -524,6 +526,9 @@ def main():
     
     with tab2:
         render_saved_summaries()
+    
+    # Fermer le conteneur principal
+    st.markdown('</div>', unsafe_allow_html=True)
 
 
 if __name__ == "__main__":

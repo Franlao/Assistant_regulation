@@ -207,6 +207,7 @@ def render_login_form() -> bool:
     return False
 
 
+
 def render_user_info():
     """Affiche les informations de l'utilisateur connecté dans la sidebar"""
     if not st.session_state.get("authenticated", False):

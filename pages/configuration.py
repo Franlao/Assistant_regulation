@@ -7,22 +7,28 @@ import streamlit as st
 from utils.session_utils import initialize_session_state, update_settings, get_or_create_orchestrator
 from components.auth_components import require_authentication, render_change_password_form
 from config import save_config, reload_config
+import os
 
 
 def render_llm_configuration():
     """Configuration des modèles LLM"""
-    st.subheader("🧠 Configuration des Modèles LLM")
-    
-    config = st.session_state.get("config")
-    current_settings = st.session_state.get("settings", {})
-    
     with st.container():
+        st.markdown('<div class="configuration-section">', unsafe_allow_html=True)
+        #st.subheader("Configuration des Modèles LLM")
+        st.markdown("""
+        <div style="padding: 2rem 0;">
+            <h2 style="color: #343a40; font-weight: 360; font-size: 2rem; margin: 0;">Configuration des Modèles LLM</h2>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        config = st.session_state.get("config")
+        current_settings = st.session_state.get("settings", {})
         col1, col2 = st.columns(2)
         
         with col1:
             # Sélection du provider
             llm_provider = st.selectbox(
-                "🏢 Fournisseur LLM",
+                "Fournisseur LLM",
                 options=config.llm.available_providers,
                 index=config.llm.available_providers.index(current_settings.get("llm_provider", config.llm.default_provider)),
                 help="Choisissez entre Ollama (local) ou Mistral AI (cloud)"
@@ -39,7 +45,7 @@ def render_llm_configuration():
                 model_index = 0
             
             model_name = st.selectbox(
-                "🎯 Modèle",
+                "Modèle",
                 options=model_options,
                 index=model_index,
                 help=f"Modèles disponibles pour {llm_provider}"
@@ -47,12 +53,12 @@ def render_llm_configuration():
         
         # Informations sur le provider sélectionné
         if llm_provider == "ollama":
-            st.info("🏠 **Ollama (Local)** - Traitement sur votre machine, plus privé mais nécessite des ressources locales")
+            st.info("**Ollama (Local)** - Traitement sur votre machine, plus privé mais nécessite des ressources locales")
         else:
-            st.info("☁️ **Mistral AI (Cloud)** - Traitement dans le cloud, plus rapide mais nécessite une connexion internet")
+            st.info("**Mistral AI (Cloud)** - Traitement dans le cloud, plus rapide mais nécessite une connexion internet")
         
         # Tester la connexion
-        if st.button("🔍 Tester la Connexion", type="secondary"):
+        if st.button("Tester la Connexion", type="secondary"):
             test_llm_connection(llm_provider, model_name)
         
         # Appliquer les changements
@@ -63,7 +69,9 @@ def render_llm_configuration():
                 "llm_provider": llm_provider,
                 "model_name": model_name
             })
-            st.success("✅ Configuration LLM mise à jour!")
+            st.success("Configuration LLM mise à jour avec succès")
+        
+        st.markdown('</div>', unsafe_allow_html=True)
 
 
 def test_llm_connection(provider: str, model: str):
@@ -87,67 +95,79 @@ def test_llm_connection(provider: str, model: str):
             )
             
             if response and len(response.strip()) > 0:
-                st.success(f"✅ Connexion réussie! Réponse: '{response[:100]}...'")
+                st.success(f"Connexion réussie! Réponse: '{response[:100]}...'")
             else:
-                st.error("❌ Connexion échouée - Réponse vide")
+                st.error("Connexion échouée - Réponse vide")
                 
     except Exception as e:
-        st.error(f"❌ Erreur de connexion: {str(e)}")
+        st.error(f"Erreur de connexion: {str(e)}")
 
 
 def render_rag_configuration():
     """Configuration des paramètres RAG"""
-    st.subheader("🔍 Configuration RAG (Recherche)")
-    
-    current_settings = st.session_state.get("settings", {})
+    with st.container():
+        st.markdown('<div class="configuration-section">', unsafe_allow_html=True)
+        #st.subheader("Configuration RAG (Recherche)")
+        st.markdown("""
+        <div style="padding: 2rem 0;">
+            <h2 style="color: #343a40; font-weight: 360; font-size: 2rem; margin: 0;">Configuration RAG (Recherche)</h2>
+        </div>
+        """, unsafe_allow_html=True)
+        current_settings = st.session_state.get("settings", {})
     
     col1, col2 = st.columns(2)
     
     with col1:
-        st.markdown("**🎯 Options de Recherche**")
-        
-        # Vérification des résultats
-        enable_verification = st.toggle(
-            "🔎 Vérification LLM des résultats",
-            value=current_settings.get("enable_verification", True),
-            help="Active la validation des chunks par le LLM (plus précis mais plus lent)"
-        )
-        
-        # Recherche multimodale
-        use_images = st.toggle(
-            "🖼️ Inclure les images",
-            value=current_settings.get("use_images", True),
-            help="Recherche dans les diagrammes et figures des documents"
-        )
-        
-        use_tables = st.toggle(
-            "📊 Inclure les tableaux",
-            value=current_settings.get("use_tables", True),
-            help="Recherche dans les tableaux et données structurées"
-        )
+        with st.container():
+            st.markdown('<div class="configuration-card">', unsafe_allow_html=True)
+            st.markdown("**Options de Recherche**")
+            
+            # Vérification des résultats
+            enable_verification = st.toggle(
+                "Vérification LLM des résultats",
+                value=current_settings.get("enable_verification", True),
+                help="Active la validation des chunks par le LLM (plus précis mais plus lent)"
+            )
+            
+            # Recherche multimodale
+            use_images = st.toggle(
+                "Inclure les images",
+                value=current_settings.get("use_images", True),
+                help="Recherche dans les diagrammes et figures des documents"
+            )
+            
+            use_tables = st.toggle(
+                "Inclure les tableaux",
+                value=current_settings.get("use_tables", True),
+                help="Recherche dans les tableaux et données structurées"
+            )
+            st.markdown('</div>', unsafe_allow_html=True)
     
     with col2:
-        st.markdown("**⚙️ Paramètres Avancés**")
-        
-        # Seuil de confiance
-        confidence_threshold = st.slider(
-            "🎚️ Seuil de confiance",
-            min_value=0.0,
-            max_value=1.0,
-            value=current_settings.get("confidence_threshold", 0.7),
-            step=0.1,
-            help="Seuil minimum de confiance pour les résultats de recherche"
-        )
-        
-        # Mots-clés forçant RAG
-        force_rag_keywords = st.text_input(
-            "🔑 Mots-clés forçant RAG",
-            value=current_settings.get("force_rag_keywords", ""),
-            help="Mots-clés séparés par des virgules qui forcent l'utilisation de RAG"
-        )
+        with st.container():
+            st.markdown('<div class="configuration-card">', unsafe_allow_html=True)
+            st.markdown("**Paramètres Avancés**")
+            
+            # Seuil de confiance
+            confidence_threshold = st.slider(
+                "Seuil de confiance",
+                min_value=0.0,
+                max_value=1.0,
+                value=current_settings.get("confidence_threshold", 0.7),
+                step=0.1,
+                help="Seuil minimum de confiance pour les résultats de recherche"
+            )
+            
+            # Mots-clés forçant RAG
+            force_rag_keywords = st.text_input(
+                "Mots-clés forçant RAG",
+                value=current_settings.get("force_rag_keywords", ""),
+                help="Mots-clés séparés par des virgules qui forcent l'utilisation de RAG"
+            )
+            st.markdown('</div>', unsafe_allow_html=True)
     
     # Prévisualisation des paramètres
-    with st.expander("👁️ Prévisualisation des Paramètres", expanded=False):
+    with st.expander("Prévisualisation des Paramètres", expanded=False):
         st.json({
             "verification": enable_verification,
             "multimodal": {"images": use_images, "tables": use_tables},
@@ -166,41 +186,54 @@ def render_rag_configuration():
     
     if any(new_settings[key] != current_settings.get(key) for key in new_settings):
         update_settings(new_settings)
-        st.success("✅ Configuration RAG mise à jour!")
+        st.success("Configuration RAG mise à jour avec succès")
+        
+        st.markdown('</div>', unsafe_allow_html=True)
 
 
 def render_memory_configuration():
     """Configuration de la mémoire conversationnelle"""
-    st.subheader("🧠 Mémoire Conversationnelle")
-    
-    current_settings = st.session_state.get("settings", {})
+    with st.container():
+        st.markdown('<div class="configuration-section">', unsafe_allow_html=True)
+        #st.subheader("Mémoire Conversationnelle")
+        st.markdown("""
+        <div style="padding: 2rem 0;">
+            <h2 style="color: #343a40; font-weight: 360; font-size: 2rem; margin: 0;">Mémoire Conversationnelle</h2>
+        </div>
+        """, unsafe_allow_html=True)
+        current_settings = st.session_state.get("settings", {})
     
     col1, col2 = st.columns(2)
     
     with col1:
-        st.markdown("**🔧 Paramètres de Mémoire**")
-        
-        # Activation de la mémoire
-        enable_memory = st.toggle(
-            "🧠 Activer la mémoire conversationnelle",
-            value=current_settings.get("enable_conversation_memory", True),
-            help="Permet à l'assistant de se souvenir des échanges précédents"
-        )
-        
-        if enable_memory:
-            # Taille de la fenêtre
-            window_size = st.slider(
-                "📏 Taille de fenêtre mémoire",
-                min_value=3,
-                max_value=20,
-                value=current_settings.get("conversation_window_size", 10),
-                help="Nombre d'échanges récents gardés en mémoire active"
+        with st.container():
+            st.markdown('<div class="configuration-card">', unsafe_allow_html=True)
+            st.markdown("**Paramètres de Mémoire**")
+            
+            # Activation de la mémoire
+            enable_memory = st.toggle(
+                "Activer la mémoire conversationnelle",
+                value=current_settings.get("enable_conversation_memory", True),
+                help="Permet à l'assistant de se souvenir des échanges précédents"
             )
-        else:
-            window_size = current_settings.get("conversation_window_size", 10)
+        
+            if enable_memory:
+                # Taille de la fenêtre
+                window_size = st.slider(
+                    "Taille de fenêtre mémoire",
+                    min_value=3,
+                    max_value=20,
+                    value=current_settings.get("conversation_window_size", 10),
+                    help="Nombre d'échanges récents gardés en mémoire active"
+                )
+            else:
+                window_size = current_settings.get("conversation_window_size", 10)
+            st.markdown('</div>', unsafe_allow_html=True)
     
     with col2:
-        st.markdown("**📊 Statistiques de Mémoire**")
+        with st.container():
+            st.markdown('<div class="configuration-card">', unsafe_allow_html=True)
+            st.markdown("**Statistiques de Mémoire**")
         
         # Afficher les statistiques si l'orchestrateur existe
         orchestrator = st.session_state.get("orchestrator")
@@ -218,42 +251,43 @@ def render_memory_configuration():
                         st.metric("Résumés", stats.get('summaries_count', 0))
                         st.metric("Fenêtre", stats.get('window_size', 0))
                 else:
-                    st.info("💭 Mémoire inactive")
+                    st.info("Mémoire inactive")
             except Exception:
-                st.warning("⚠️ Impossible de récupérer les statistiques")
+                st.warning("Impossible de récupérer les statistiques")
         else:
-            st.info("🔄 Orchestrateur non initialisé")
+            st.info("Orchestrateur non initialisé")
         
         # Actions sur la mémoire
-        st.markdown("**🎛️ Actions**")
+        st.markdown("**Actions**")
         
         col2a, col2b = st.columns(2)
         with col2a:
-            if st.button("🧹 Effacer Mémoire", help="Vider toute la mémoire conversationnelle"):
+            if st.button("Effacer Mémoire", help="Vider toute la mémoire conversationnelle"):
                 if orchestrator:
                     try:
                         orchestrator.clear_conversation_memory()
-                        st.success("✅ Mémoire effacée!")
+                        st.success("Mémoire effacée avec succès")
                         st.rerun()
                     except Exception as e:
-                        st.error(f"❌ Erreur: {e}")
+                        st.error(f"Erreur: {e}")
                 else:
-                    st.warning("⚠️ Orchestrateur non disponible")
+                    st.warning("Orchestrateur non disponible")
         
         with col2b:
-            if st.button("📊 Exporter", help="Exporter la conversation actuelle"):
+            if st.button("Exporter", help="Exporter la conversation actuelle"):
                 export_conversation()
+            st.markdown('</div>', unsafe_allow_html=True)
     
     # Informations sur la mémoire
     if enable_memory:
         st.info(f"""
-        💡 **Comment fonctionne la mémoire :**
+        **Comment fonctionne la mémoire :**
         - **Fenêtre active** : {window_size} derniers échanges gardés en mémoire
         - **Résumés automatiques** : Les anciens échanges sont résumés pour économiser la mémoire
         - **Contexte intelligent** : L'assistant comprend vos références aux conversations précédentes
         """)
     else:
-        st.warning("⚠️ **Mémoire désactivée** - L'assistant ne se souviendra pas des échanges précédents")
+        st.warning("**Mémoire désactivée** - L'assistant ne se souviendra pas des échanges précédents")
     
     # Appliquer les changements
     if (enable_memory != current_settings.get("enable_conversation_memory") or
@@ -263,7 +297,9 @@ def render_memory_configuration():
             "enable_conversation_memory": enable_memory,
             "conversation_window_size": window_size
         })
-        st.success("✅ Configuration mémoire mise à jour!")
+        st.success("Configuration mémoire mise à jour avec succès")
+        
+        st.markdown('</div>', unsafe_allow_html=True)
 
 
 def export_conversation():
@@ -279,60 +315,74 @@ def export_conversation():
             if messages:
                 st.json({"messages": messages, "exported_at": st.session_state.get("session_id")})
             else:
-                st.info("💭 Aucune conversation à exporter")
+                st.info("Aucune conversation à exporter")
     except Exception as e:
-        st.error(f"❌ Erreur d'export: {e}")
+        st.error(f"Erreur d'export: {e}")
 
 
 def render_ui_configuration():
     """Configuration de l'interface utilisateur"""
-    st.subheader("🎨 Interface Utilisateur")
-    
-    config = st.session_state.get("config")
-    current_language = st.session_state.get("language", "fr")
+    with st.container():
+        st.markdown('<div class="configuration-section">', unsafe_allow_html=True)
+        #st.subheader("Interface Utilisateur")
+        st.markdown("""
+        <div style="padding: 2rem 0;">
+            <h2 style="color: #343a40; font-weight: 360; font-size: 2rem; margin: 0;">Interface Utilisateur</h2>
+        </div>
+        """, unsafe_allow_html=True)
+        config = st.session_state.get("config")
+        current_language = st.session_state.get("language", "fr")
     
     col1, col2 = st.columns(2)
     
     with col1:
-        st.markdown("**🌐 Langue**")
+        st.markdown("**Langue**")
         
         # Sélecteur de langue
         new_language = st.selectbox(
             "Langue de l'interface",
             options=config.ui.available_languages,
             index=config.ui.available_languages.index(current_language),
-            format_func=lambda x: "🇫🇷 Français" if x == "fr" else "🇬🇧 English"
+            format_func=lambda x: "Français" if x == "fr" else "English"
         )
         
         if new_language != current_language:
             st.session_state.language = new_language
-            st.success(f"✅ Langue changée pour: {'Français' if new_language == 'fr' else 'English'}")
+            st.success(f"Langue changée pour: {'Français' if new_language == 'fr' else 'English'}")
             st.rerun()
     
     with col2:
-        st.markdown("**🛠️ Debug**")
+        st.markdown("**Debug**")
         
         # Mode debug
         show_debug = st.toggle(
-            "🔍 Mode Debug",
+            "Mode Debug",
             value=st.session_state.get("show_debug", False),
             help="Affiche des informations de débogage détaillées"
         )
         
         if show_debug != st.session_state.get("show_debug", False):
             st.session_state.show_debug = show_debug
-            st.success(f"✅ Mode debug {'activé' if show_debug else 'désactivé'}")
+            st.success(f"Mode debug {'activé' if show_debug else 'désactivé'}")
+        
+        st.markdown('</div>', unsafe_allow_html=True)
 
 
 def render_system_configuration():
     """Configuration système et sauvegarde"""
-    st.subheader("⚙️ Configuration Système")
-    
-    config = st.session_state.get("config")
-    settings = st.session_state.get("settings", {})
+    with st.container():
+        st.markdown('<div class="configuration-section">', unsafe_allow_html=True)
+        #st.subheader("Configuration Système")
+        st.markdown("""
+        <div style="padding: 2rem 0;">
+            <h2 style="color: #343a40; font-weight: 360; font-size: 2rem; margin: 0;">Configuration Système</h2>
+        </div>
+        """, unsafe_allow_html=True)
+        config = st.session_state.get("config")
+        settings = st.session_state.get("settings", {})
     
     # Informations sur la configuration actuelle
-    with st.expander("📋 Configuration Actuelle", expanded=False):
+    with st.expander("Configuration Actuelle", expanded=False):
         st.json({
             "app": {"name": config.app_name, "version": config.version},
             "llm": {
@@ -356,16 +406,18 @@ def render_system_configuration():
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        if st.button("💾 Sauvegarder Config", type="primary"):
+        if st.button("Sauvegarder Config", type="primary"):
             save_current_config()
     
     with col2:
-        if st.button("🔄 Recharger Config"):
+        if st.button("Recharger Config"):
             reload_current_config()
     
     with col3:
-        if st.button("🔧 Réinitialiser Orchestrateur"):
+        if st.button("Réinitialiser Orchestrateur"):
             reset_orchestrator()
+    
+    st.markdown('</div>', unsafe_allow_html=True)
 
 
 def save_current_config():
@@ -395,20 +447,20 @@ def save_current_config():
         
         # Sauvegarder
         save_config()
-        st.success("✅ Configuration sauvegardée avec succès!")
+        st.success("Configuration sauvegardée avec succès")
         
     except Exception as e:
-        st.error(f"❌ Erreur de sauvegarde: {e}")
+        st.error(f"Erreur de sauvegarde: {e}")
 
 
 def reload_current_config():
     """Recharge la configuration depuis le fichier"""
     try:
         reload_config()
-        st.success("✅ Configuration rechargée!")
+        st.success("Configuration rechargée avec succès")
         st.rerun()
     except Exception as e:
-        st.error(f"❌ Erreur de rechargement: {e}")
+        st.error(f"Erreur de rechargement: {e}")
 
 
 def reset_orchestrator():
@@ -417,11 +469,19 @@ def reset_orchestrator():
         st.session_state.orchestrator = None
         orchestrator = get_or_create_orchestrator()
         if orchestrator:
-            st.success("✅ Orchestrateur réinitialisé!")
+            st.success("Orchestrateur réinitialisé avec succès")
         else:
-            st.error("❌ Erreur de réinitialisation")
+            st.error("Erreur de réinitialisation")
     except Exception as e:
-        st.error(f"❌ Erreur: {e}")
+        st.error(f"Erreur: {e}")
+
+
+def load_custom_styles():
+    """Charge les styles CSS personnalisés"""
+    css_file = os.path.join(os.path.dirname(__file__), "configuration_styles.css")
+    if os.path.exists(css_file):
+        with open(css_file, 'r', encoding='utf-8') as f:
+            st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
 
 def main():
@@ -431,20 +491,29 @@ def main():
     if not require_authentication():
         return
     
+    # Charger les styles personnalisés
+    load_custom_styles()
+    
     # Initialisation
     initialize_session_state()
     
-    # Titre de la page
-    st.title("⚙️ Configuration")
-    st.markdown("Configurez tous les paramètres de l'Assistant Réglementaire")
+    # Conteneur principal avec classe CSS
+    st.markdown('<div class="configuration-page">', unsafe_allow_html=True)
     
+    # Titre sobre (exactement comme Summary) avec !important pour priorité CSS
+    st.markdown("""
+    <div style="text-align: center; padding: 2rem 0;">
+        <h1 style="color: #343a40; font-weight: 400; font-size: 2rem; margin: 0;">Configuration</h1>
+        <p style="color: #6c757d; font-size: 1rem; margin: 0.5rem 0 0 0;">Configurez tous les paramètres de l'Assistant Réglementaire</p>
+    </div>
+    """, unsafe_allow_html=True)
     # Navigation par onglets
     tab1, tab2, tab3, tab4, tab5 = st.tabs([
-        "🧠 LLM", 
-        "🔍 RAG", 
-        "🧠 Mémoire", 
-        "🎨 Interface", 
-        "⚙️ Système"
+        "LLM", 
+        "RAG", 
+        "Mémoire", 
+        "Interface", 
+        "Système"
     ])
     
     with tab1:
@@ -464,12 +533,14 @@ def main():
     
     # Section sécurité
     st.divider()
-    st.subheader("🔐 Sécurité")
+    st.subheader("Sécurité")
     render_change_password_form()
     
     # Footer
     st.divider()
-    st.caption("💡 Les modifications sont appliquées automatiquement. Utilisez 'Sauvegarder Config' pour les rendre permanentes.")
+    st.caption("Les modifications sont appliquées automatiquement. Utilisez 'Sauvegarder Config' pour les rendre permanentes.")
+    
+    st.markdown('</div>', unsafe_allow_html=True)
 
 
 if __name__ == "__main__":
