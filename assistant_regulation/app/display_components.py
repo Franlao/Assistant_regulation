@@ -13,6 +13,16 @@ from .streamlit_utils import get_current_time, extract_table_from_text, generate
 
 def display_fullscreen_pdf(file_path, page_number, document_name, source_id):
     """Affiche le PDF en fullscreen avec modal Streamlit"""
+    # S'assurer que page_number est un entier
+    try:
+        if isinstance(page_number, str):
+            page_number = int(page_number)
+        elif page_number is None:
+            page_number = 1
+        page_number = int(page_number)  # Force conversion
+    except (ValueError, TypeError):
+        page_number = 1
+    
     try:
         import fitz  # PyMuPDF
     except ImportError:
@@ -69,6 +79,16 @@ def display_fullscreen_pdf(file_path, page_number, document_name, source_id):
 
 def display_inline_pdf_excerpt(file_path, page_number, source_id):
     """Affiche un extrait du PDF directement dans l'interface"""
+    # S'assurer que page_number est un entier
+    try:
+        if isinstance(page_number, str):
+            page_number = int(page_number)
+        elif page_number is None:
+            page_number = 1
+        page_number = int(page_number)  # Force conversion
+    except (ValueError, TypeError):
+        page_number = 1
+    
     try:
         # Importer PyMuPDF (fitz) avec gestion d'erreur
         try:
@@ -197,15 +217,28 @@ def _render_source_card(source, index):
     
     regulation = source.get('regulation', 'Réglementation')
     section = source.get('section', 'Section inconnue') 
-    pages = source.get('pages', 'Page inconnue')
+    pages_raw = source.get('pages', 'Page inconnue')
     document_name = source.get('document_name', source.get('document', 'Document inconnu'))
     source_link = source.get('source_link', '')
     confidence = source.get('confidence', 0)
     
+    # Formatage sécurisé des pages
+    if isinstance(pages_raw, list):
+        if len(pages_raw) == 1:
+            pages_str = str(pages_raw[0])
+        elif len(pages_raw) > 1:
+            pages_str = f"{pages_raw[0]}-{pages_raw[-1]}"
+        else:
+            pages_str = 'Page inconnue'
+    elif pages_raw is not None:
+        pages_str = str(pages_raw)
+    else:
+        pages_str = 'Page inconnue'
+    
     # Nettoyer et échapper le texte pour éviter les problèmes HTML
     regulation = html.escape(str(regulation))
     section = html.escape(str(section))
-    pages = html.escape(str(pages))
+    pages = html.escape(pages_str)
     document_name = html.escape(str(document_name))
     
     # Couleur du badge de confiance
@@ -317,7 +350,18 @@ def _render_source_card(source, index):
                     st.write("Bouton Aperçu cliqué!")
                     try:
                         if os.path.exists(file_path):
-                            display_inline_pdf_excerpt(file_path, source.get('page', 1), index)
+                            # Formatage sécurisé du numéro de page
+                            page_raw = source.get('page', source.get('pages', 1))
+                            
+                            try:
+                                if isinstance(page_raw, list):
+                                    page_num = int(page_raw[0]) if page_raw else 1
+                                else:
+                                    page_num = int(page_raw) if page_raw is not None else 1
+                            except (ValueError, TypeError):
+                                page_num = 1
+                            
+                            display_inline_pdf_excerpt(file_path, page_num, index)
                         else:
                             st.error(f"Fichier non trouvé : {file_path}")
                     except Exception as e:
@@ -402,9 +446,23 @@ def _render_source_card_minimal(source, index):
     import html
     
     document_name = source.get('document_name', source.get('document', 'Document'))
-    pages = source.get('pages', source.get('page', '?'))
+    pages_raw = source.get('pages', source.get('page', '?'))
     source_link = source.get('source_link', '')
     text_preview = source.get('text_preview', source.get('full_text', ''))
+    
+    # Formatage sécurisé des pages
+    if isinstance(pages_raw, list):
+        if len(pages_raw) == 1:
+            pages = str(pages_raw[0])
+        elif len(pages_raw) > 1:
+            pages = f"{pages_raw[0]}-{pages_raw[-1]}"
+        else:
+            pages = '?'
+    elif pages_raw is not None:
+        pages = str(pages_raw)
+    else:
+        pages = '?'
+    
     if not text_preview or not isinstance(text_preview, str):
         text_preview = "Aperçu du contenu non disponible"
     elif len(text_preview.strip()) > 80:
@@ -455,7 +513,18 @@ def _render_source_card_minimal(source, index):
             # Bouton unique et efficace
             if file_path and st.button("👁 Voir", key=f"view_{index}", help="Voir le document"):
                 if os.path.exists(file_path):
-                    display_fullscreen_pdf(file_path, source.get('page', 1), document_name, index)
+                    # Formatage sécurisé du numéro de page
+                    page_raw = source.get('page', source.get('pages', 1))
+                    
+                    try:
+                        if isinstance(page_raw, list):
+                            page_num = int(page_raw[0]) if page_raw else 1
+                        else:
+                            page_num = int(page_raw) if page_raw is not None else 1
+                    except (ValueError, TypeError):
+                        page_num = 1
+                    
+                    display_fullscreen_pdf(file_path, page_num, document_name, index)
                 else:
                     st.error("Document inaccessible")
 
@@ -572,7 +641,7 @@ def display_images(images, max_height=300, section_key=None, t=None, config=None
                             st.image(
                                 image_url,
                                 caption=None,  # Pas de légende ici, on l'ajoute plus bas
-                                width='stretch'
+                                use_container_width=True
                             )
                         
                         # Description tronquée courte
@@ -613,7 +682,7 @@ def display_images(images, max_height=300, section_key=None, t=None, config=None
                         """, unsafe_allow_html=True)
                     else:
                         # Pour les URL normales, utiliser st.image
-                        st.image(sel_img["url"], width='stretch')
+                        st.image(sel_img["url"], use_container_width=True)
                     
                     # Description complète dans un container discret
                     with st.container():
@@ -677,7 +746,7 @@ def display_tables(tables, t=None):
                 if df is not None:
                     # Corriger les noms de colonnes
                     df.columns = fix_column_names(df.columns)
-                    st.dataframe(df, width='stretch')
+                    st.dataframe(df, use_container_width=True)
                     continue
             
             # Étape 2: Traiter différents formats de données structurées
@@ -688,13 +757,13 @@ def display_tables(tables, t=None):
                         # Corriger les noms de colonnes
                         column_names = fix_column_names(content[0] if len(content) > 0 else None)
                         df = pd.DataFrame(content[1:], columns=column_names)
-                        st.dataframe(df, width='stretch')
+                        st.dataframe(df, use_container_width=True)
                     else:
                         st.write("Tableau vide")
                 elif isinstance(content, list) and all(isinstance(row, dict) for row in content):
                     # Cas d'une liste de dictionnaires
                     df = pd.DataFrame(content)
-                    st.dataframe(df, width='stretch')
+                    st.dataframe(df, use_container_width=True)
                 else:
                     # Si le contenu est une chaîne, essayer de l'analyser comme un tableau
                     if isinstance(content, str):
@@ -715,7 +784,7 @@ def display_tables(tables, t=None):
                                     # Corriger les noms de colonnes
                                     column_names = fix_column_names(rows[0] if len(rows) > 0 else None)
                                     df = pd.DataFrame(rows[1:], columns=column_names)
-                                    st.dataframe(df, width='stretch')
+                                    st.dataframe(df, use_container_width=True)
                                     continue
                         
                         # Si toutes les tentatives échouent, afficher tel quel mais avec un format amélioré
