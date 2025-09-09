@@ -3,7 +3,7 @@
 
 # === Core Application ===
 streamlit==1.47.1
-streamlit-elements==0.1.*
+streamlit-elements==0.1.0
 python-dotenv==1.1.1
 
 # === LLM Providers ===
@@ -41,10 +41,10 @@ tqdm==4.67.1
 
 # === Vector Database ===
 chromadb==1.0.15
+sentence-transformers==5.0.0
 
 # === Text Processing (essential for chunking) ===
 chonkie[st]==1.1.2
-
 # === Testing ===
 pytest==8.2.2
 pytest-mock==3.14.0
