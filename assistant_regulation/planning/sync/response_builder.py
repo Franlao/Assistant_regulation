@@ -92,14 +92,34 @@ class ResponseBuilder:
             pages = []
             if meta.get('page_number'):
                 # Format retriever standard
-                pages = [meta['page_number']]
+                try:
+                    pages = [int(meta['page_number'])]
+                except (ValueError, TypeError):
+                    pages = []
             elif meta.get('page_numbers_str'):
                 # Format Late Chunker avec pages multiples
-                pages = [int(p) for p in meta['page_numbers_str'].split(',') if p.strip()]
+                try:
+                    pages = [int(p) for p in meta['page_numbers_str'].split(',') if p.strip()]
+                except (ValueError, TypeError, AttributeError):
+                    pages = []
             elif meta.get('page_no'):
-                pages = [meta['page_no']]
+                try:
+                    pages = [int(meta['page_no'])]
+                except (ValueError, TypeError):
+                    pages = []
             elif chunk.get('page_numbers'):
-                pages = chunk['page_numbers']
+                # Assurer que page_numbers contient des entiers
+                raw_pages = chunk['page_numbers']
+                if isinstance(raw_pages, list):
+                    pages = []
+                    for p in raw_pages:
+                        try:
+                            pages.append(int(p))
+                        except (ValueError, TypeError):
+                            # Ignorer les valeurs non convertibles
+                            continue
+                else:
+                    pages = []
             
             page = pages[0] if pages else None
             

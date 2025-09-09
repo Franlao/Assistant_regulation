@@ -13,12 +13,30 @@ def display_sources(sources):
         
     with st.expander("Sources utilisées", expanded=False):
         for i, source in enumerate(sources):
-            st.markdown(f"""
-            <div class="source-citation">
-                <strong>Source {i+1}:</strong> {source['regulation']}, Section {source['section']} (Pages {source['pages']})
-                <div style="margin-top: 5px; font-style: italic;">{source['text']}</div>
-            </div>
-            """, unsafe_allow_html=True)
+            try:
+                # Formatage sécurisé des pages
+                pages_value = source.get('pages', 'N/A')
+                if isinstance(pages_value, list):
+                    pages_str = ', '.join(map(str, pages_value))
+                elif pages_value is not None:
+                    pages_str = str(pages_value)
+                else:
+                    pages_str = 'N/A'
+                
+                regulation = source.get('regulation', 'N/A')
+                section = source.get('section', 'N/A')
+                text = source.get('text', source.get('content', ''))
+                
+                st.markdown(f"""
+                <div class="source-citation">
+                    <strong>Source {i+1}:</strong> {regulation}, Section {section} (Pages {pages_str})
+                    <div style="margin-top: 5px; font-style: italic;">{text}</div>
+                </div>
+                """, unsafe_allow_html=True)
+                
+            except Exception as e:
+                st.error(f"Erreur lors de l'affichage de la source {i+1}: {str(e)}")
+                st.code(str(source))
 
 
 def display_images(images, max_height=300, section_key=None):

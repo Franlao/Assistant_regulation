@@ -125,7 +125,9 @@ class JinaConfig:
     default_model: str = "jina-reranker-m0"
     api_url: str = "https://api.jina.ai/v1/rerank"
     enabled: bool = True
-    timeout: int = 15
+    timeout: int = 60  # Augmenté de 15 à 60 secondes
+    max_retries: int = 2  # Nouvelles tentatives en cas d'échec
+    retry_delay: float = 1.0  # Délai entre les tentatives en secondes
     disable_on_railway: bool = True
 
 @dataclass

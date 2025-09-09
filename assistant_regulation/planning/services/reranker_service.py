@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import List, Dict, Any
+import time
 
 import requests  # Appel HTTP à l'API Jina
 from config.config import get_config
@@ -47,10 +48,12 @@ class RerankerService:
         self.api_url: str = cfg.jina.api_url
         self.model_name: str = model_name or cfg.jina.default_model
         self.timeout: int = cfg.jina.timeout
+        self.max_retries: int = cfg.jina.max_retries
+        self.retry_delay: float = cfg.jina.retry_delay
 
     # ------------------------------------------------------------------
     def _call_jina_api(self, query: str, docs: List[Any]) -> List[tuple[Any, float]]:
-        """Envoie la requête POST à l'API Jina et renvoie la liste (doc, score)."""
+        """Envoie la requête POST à l'API Jina avec retry logic et renvoie la liste (doc, score)."""
         headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {self.api_key}",
@@ -62,11 +65,41 @@ class RerankerService:
             "documents": docs,
             "return_documents": False,
         }
-        # Utiliser timeout depuis config
-        response = requests.post(self.api_url, headers=headers, json=payload, timeout=self.timeout)
-        if response.status_code >= 400:
-            raise RuntimeError(f"Jina API error {response.status_code}: {response.text}")
-        data = response.json()
+        
+        last_error = None
+        for attempt in range(self.max_retries + 1):  # +1 pour la première tentative
+            try:
+                # Utiliser timeout depuis config
+                response = requests.post(self.api_url, headers=headers, json=payload, timeout=self.timeout)
+                
+                # Gestion spéciale pour les erreurs 503 (service indisponible)
+                if response.status_code == 503:
+                    raise requests.exceptions.RequestException(f"Service Jina temporairement indisponible (503)")
+                
+                if response.status_code >= 400:
+                    raise RuntimeError(f"Jina API error {response.status_code}: {response.text}")
+                
+                data = response.json()
+                
+                # Si on arrive ici, la requête a réussi
+                break
+                
+            except (requests.exceptions.Timeout, requests.exceptions.ConnectionError, requests.exceptions.RequestException) as e:
+                last_error = e
+                if attempt < self.max_retries:
+                    wait_time = self.retry_delay * (2 ** attempt)  # Exponential backoff
+                    print(f"RETRY: Tentative Jina {attempt + 1}/{self.max_retries + 1} échouée: {type(e).__name__}. Nouvel essai dans {wait_time:.1f}s...")
+                    time.sleep(wait_time)
+                    continue
+                else:
+                    # Dernière tentative échouée
+                    raise RuntimeError(f"Jina rerank failed after {self.max_retries + 1} attempts: {last_error}")
+            except Exception as e:
+                # Pour les autres erreurs (non réseau), ne pas faire de retry
+                raise RuntimeError(f"Jina API error: {e}")
+        else:
+            # Cette ligne ne devrait jamais être atteinte
+            raise RuntimeError(f"Jina rerank failed after {self.max_retries + 1} attempts: {last_error}")
 
         # Le format de réponse peut varier légèrement selon la version de l'API.
         # On essaye donc plusieurs clés possibles.
@@ -137,14 +170,44 @@ class RerankerService:
         if not docs:
             return []
 
+        # Optimisation: limiter le nombre de documents pour éviter les timeouts
+        # Si plus de 20 documents, prendre seulement les meilleurs premiers
+        max_docs_for_rerank = 20
+        if len(docs) > max_docs_for_rerank:
+            print(f"OPTIMIZATION: Limitation à {max_docs_for_rerank} documents pour le reranking (sur {len(docs)} disponibles)")
+            docs = docs[:max_docs_for_rerank]
+            index_to_chunk = index_to_chunk[:max_docs_for_rerank]
+
         try:
             ranked_pairs = self.rerank(query, docs, top_k=top_k)
         except Exception as e:
-            print(f"Jina rerank failed: {e}. Docs sent: {len(docs)}")
+            error_type = type(e).__name__
+            error_str = str(e).lower()
+            
+            if "timeout" in error_str or "timed out" in error_str:
+                print(f"WARNING: Jina rerank timeout après {self.timeout}s. Documents: {len(docs)}")
+                print("SUGGESTION: Le service Jina met plus de temps que prévu à répondre")
+            elif "503" in error_str or "service temporarily unavailable" in error_str:
+                print(f"WARNING: Service Jina temporairement indisponible (erreur 503)")
+                print("INFO: Jina AI est en maintenance ou surchargé. Réessayez dans quelques minutes")
+                print("STATUS: Vérifiez https://status.jina.ai")
+            elif "connection" in error_str or "dns" in error_str:
+                print(f"ERROR: Problème de connexion Jina API: {error_type}")
+                print("SUGGESTION: Vérifiez votre connexion internet et les paramètres de proxy")
+            elif "401" in error_str or "unauthorized" in error_str:
+                print(f"ERROR: Clé API Jina invalide ou expirée")
+                print("SUGGESTION: Vérifiez votre clé API Jina dans la configuration")
+            elif "429" in error_str or "rate limit" in error_str:
+                print(f"WARNING: Limite de taux Jina atteinte")
+                print("SUGGESTION: Vous avez atteint votre quota API. Attendez ou upgrader votre plan")
+            else:
+                print(f"ERROR: Erreur Jina rerank ({error_type}): {e}")
+                print("DEBUG: Erreur inattendue - vérifiez les logs pour plus de détails")
+            
             # Fallback: retourner les chunks dans l'ordre original avec scores par défaut
-            print("Fallback: retour des chunks sans reranking")
+            print("FALLBACK: Basculement vers le mode sans reranking")
             for idx, chunk in enumerate(index_to_chunk):
-                chunk["rerank_score"] = 1.0 - (idx * 0.1)  # Score décroissant simple
+                chunk["rerank_score"] = 1.0 - (idx * 0.05)  # Score décroissant plus subtil
                 chunk["score"] = chunk.get("score", 0.5)  # Garder le score original ou défaut
             return index_to_chunk[:top_k]
         enriched_chunks: List[Dict] = []

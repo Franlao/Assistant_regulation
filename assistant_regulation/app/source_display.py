@@ -573,7 +573,10 @@ def display_with_document_opener(response_text: str, sources: List[Dict], images
                                     except:
                                         pass
                                 elif source.get('pages'):
-                                    page_num = source['pages'][0]
+                                    try:
+                                        page_num = int(source['pages'][0])
+                                    except (ValueError, TypeError, IndexError):
+                                        page_num = None
                                 
                                 success = open_document_at_page(doc_path, page_num)
                                 if success:
