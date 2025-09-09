@@ -2,7 +2,7 @@
 # Balanced between functionality and size constraints
 
 # === Core Application ===
-streamlit==1.47.1
+streamlit==1.49.0
 streamlit-elements==0.1.0
 python-dotenv==1.1.1
 
