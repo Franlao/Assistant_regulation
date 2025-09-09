@@ -3,6 +3,7 @@
 
 # === Core Application ===
 streamlit==1.47.1
+streamlit-elements==0.1.*
 python-dotenv==1.1.1
 
 # === LLM Providers ===
@@ -48,3 +49,4 @@ chonkie[st]==1.1.2
 pytest==8.2.2
 pytest-mock==3.14.0
 pytest-cov==5.0.0
+
