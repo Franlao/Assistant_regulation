@@ -8,6 +8,8 @@ env/
 build/
 develop-eggs/
 dist/
+# Allow React component build
+!components/modern_auth/dist/
 downloads/
 eggs/
 .eggs/
@@ -52,3 +54,8 @@ ngrok.exe
 .vscode/
 *.swp
 *.swo
+
+# Node.js
+node_modules/
+# But allow built React component
+!components/modern_auth/dist/

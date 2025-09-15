@@ -32,12 +32,18 @@ else:
     
     # Vérifier que le build directory existe
     if not build_dir.exists():
-        raise FileNotFoundError(f"Build directory not found: {build_dir}")
-    
-    _component_func = components.declare_component(
-        "modern_auth_component", 
-        path=str(build_dir)
-    )
+        # Fallback gracieux si le build n'existe pas
+        print(f"Warning: Build directory not found at {build_dir}")
+        print("Using development mode fallback")
+        _component_func = components.declare_component(
+            "modern_auth_component",
+            url="http://localhost:3001",  # Fallback vers dev
+        )
+    else:
+        _component_func = components.declare_component(
+            "modern_auth_component",
+            path=str(build_dir)
+        )
 
 
 def modern_auth_component(
