@@ -29,7 +29,7 @@ translations = {
     "force_rag_keywords": "Keywords forcing RAG usage",
     
     # User Interface
-    "images_available": "📸 Relevant Images ({0})",
+    "images_available": "Relevant Images ({0})",
     "no_images_available": "No images are available for this query.",
     "image_size": "Size:",
     "image_size_small": "Small",
