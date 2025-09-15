@@ -136,8 +136,7 @@ def display_images(images, max_height=300, section_key=None):
                             st.image(
                                 image_url,
                                 caption=None,
-                                width=None,
-                                use_container_width=True
+                                width='stretch'
                             )
                         
                         # Description tronquée courte
@@ -178,7 +177,7 @@ def display_images(images, max_height=300, section_key=None):
                         """, unsafe_allow_html=True)
                     else:
                         # Pour les URL normales, utiliser st.image
-                        st.image(sel_img["url"], use_container_width=True)
+                        st.image(sel_img["url"], width='stretch')
                     
                     # Description complète dans un container discret
                     with st.container():
@@ -343,7 +342,7 @@ def display_tables(tables):
                 if df is not None:
                     # Corriger les noms de colonnes
                     df.columns = fix_column_names(df.columns)
-                    st.dataframe(df, use_container_width=True)
+                    st.dataframe(df, width='stretch')
                     continue
             
             # Étape 2: Traiter différents formats de données structurées
@@ -354,13 +353,13 @@ def display_tables(tables):
                         # Corriger les noms de colonnes
                         column_names = fix_column_names(content[0] if len(content) > 0 else None)
                         df = pd.DataFrame(content[1:], columns=column_names)
-                        st.dataframe(df, use_container_width=True)
+                        st.dataframe(df, width='stretch')
                     else:
                         st.write("Tableau vide")
                 elif isinstance(content, list) and all(isinstance(row, dict) for row in content):
                     # Cas d'une liste de dictionnaires
                     df = pd.DataFrame(content)
-                    st.dataframe(df, use_container_width=True)
+                    st.dataframe(df, width='stretch')
                 else:
                     # Si le contenu est une chaîne, essayer de l'analyser comme un tableau
                     if isinstance(content, str):
@@ -381,7 +380,7 @@ def display_tables(tables):
                                     # Corriger les noms de colonnes
                                     column_names = fix_column_names(rows[0] if len(rows) > 0 else None)
                                     df = pd.DataFrame(rows[1:], columns=column_names)
-                                    st.dataframe(df, use_container_width=True)
+                                    st.dataframe(df, width='stretch')
                                     continue
                         
                         # Si toutes les tentatives échouent, afficher tel quel mais avec un format amélioré

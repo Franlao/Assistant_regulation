@@ -14,7 +14,7 @@ def render_welcome_section(t):
     
     st.markdown(f"""
     <div class="info-card">
-        <h3>👋 {t('welcome_title')}</h3>
+        <h3>{t('welcome_title')}</h3>
         <p>{t('welcome_subtitle')}</p>
         <p>{t('example_questions')}</p>
         <ul>
@@ -30,7 +30,7 @@ def render_welcome_section(t):
 
 def render_header(t, config):
     """Affiche l'en-tête principal avec indicateur de mémoire"""
-    header_content = f"<h1 style='color: white;'>{t('app_title')}</h1>"
+    header_content = f"<h1 style='color: white; text-align: center;'>{t('app_title')}</h1>"
 
     # Ajouter un indicateur de mémoire conversationnelle
     if (st.session_state.settings.get("enable_conversation_memory", False) and 
@@ -115,11 +115,14 @@ def process_user_query(query, t, config):
         )
         
         if needs_recreate:
+            print(f"[ORCHESTRATOR] Creating new ModularOrchestrator with optimizations...")
             st.session_state.orchestrator = ModularOrchestrator(
                 llm_provider=st.session_state.settings["llm_provider"],
                 model_name=st.session_state.settings["model_name"],
                 enable_verification=st.session_state.settings["enable_verification"]
             )
+            print(f"[ORCHESTRATOR] Cache enabled: {st.session_state.orchestrator.retrieval_service.config.enable_caching}")
+            print(f"[ORCHESTRATOR] Created successfully")
             # Marquer la version pour éviter les recréations inutiles
             st.session_state.orchestrator._version = orchestrator_version
         

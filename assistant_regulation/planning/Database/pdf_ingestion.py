@@ -42,51 +42,77 @@ class PDFIngestionManager:
         self.logger = logging.getLogger(__name__)
     
     def ingest_from_folder(
-        self, 
-        folder_path: str, 
+        self,
+        folder_path: str,
         text_only: bool = False,
         parallel: bool = True,
-        workers: int = 4
+        workers: int = 4,
+        progress_callback: Optional[callable] = None
     ) -> bool:
         """
         Ingère tous les PDFs d'un dossier dans la base de données
         Utilise process_regulation_document pour l'ingestion complète
-        
+
         Args:
             folder_path: Chemin vers le dossier contenant les PDFs
             text_only: Si True, traite seulement le texte (plus rapide)
             parallel: Si True, utilise le traitement parallèle (ignoré pour l'instant)
             workers: Nombre de workers pour le traitement parallèle (ignoré pour l'instant)
-            
+            progress_callback: Fonction de callback pour la progression (optionnel)
+
         Returns:
             bool: True si succès, False sinon
         """
         try:
+            if progress_callback:
+                progress_callback(0.05, "Vérification du dossier...")
+
             if not os.path.exists(folder_path):
                 self.logger.error(f"Le dossier {folder_path} n'existe pas")
                 return False
-            
+
+            if progress_callback:
+                progress_callback(0.1, "Recherche des fichiers PDF...")
+
             pdf_files = self._find_pdf_files(folder_path)
             if not pdf_files:
                 self.logger.warning(f"Aucun fichier PDF trouvé dans {folder_path}")
+                if progress_callback:
+                    progress_callback(1.0, "Aucun fichier à traiter")
                 return True
-            
+
             self.logger.info(f"Trouvé {len(pdf_files)} fichiers PDF à traiter")
+
+            if progress_callback:
+                progress_callback(0.2, f"Début de l'ingestion de {len(pdf_files)} fichiers...")
+
             self.logger.info("Début de l'ingestion complète du dossier...")
-            
+
             # Utiliser process_regulation_document pour traiter tout le dossier
             # Cette fonction nettoie la base et traite tous les PDFs d'un coup
+            if progress_callback:
+                progress_callback(0.3, "Traitement en cours...")
+
             success = process_regulation_document(folder_path, text_only=text_only)
-            
+
+            if progress_callback:
+                progress_callback(0.9, "Finalisation...")
+
             if success:
                 self.logger.info("Ingestion terminée avec succès")
+                if progress_callback:
+                    progress_callback(1.0, "Ingestion terminée avec succès!")
                 return True
             else:
                 self.logger.error("Erreurs lors de l'ingestion")
+                if progress_callback:
+                    progress_callback(0.0, "Erreurs lors de l'ingestion")
                 return False
                 
         except Exception as e:
             self.logger.error(f"Erreur lors de l'ingestion: {e}")
+            if progress_callback:
+                progress_callback(0.0, f"Erreur: {str(e)}")
             return False
     
     def ingest_single_pdf(self, pdf_path: str, text_only: bool = False) -> bool:

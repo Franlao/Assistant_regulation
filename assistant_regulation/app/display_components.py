@@ -66,7 +66,7 @@ def display_fullscreen_pdf(file_path, page_number, document_name, source_id):
         with col3:
             with open(file_path, "rb") as pdf_file:
                 st.download_button(
-                    "⬇️ Télécharger PDF",
+                    "Télécharger PDF",
                     data=pdf_file.read(),
                     file_name=os.path.basename(file_path),
                     mime="application/pdf"
@@ -169,7 +169,7 @@ def display_sources(sources, t, compact=False):
     unique_regs = len(set(source.get('regulation', 'Unknown') for source in sources))
     
     # En-tête avec statistiques
-    header_text = f"📚 {total_sources} source{'s' if total_sources > 1 else ''}"
+    header_text = f"{total_sources} source{'s' if total_sources > 1 else ''}"
     if unique_regs > 1:
         header_text += f" • {unique_regs} réglementations"
     
@@ -192,7 +192,7 @@ def display_sources(sources, t, compact=False):
         # Affichage groupé par réglementation
         for reg_name, reg_sources in sources_by_reg.items():
             if len(sources_by_reg) > 1:
-                st.markdown(f"**📋 {reg_name}**")
+                st.markdown(f"**{reg_name}**")
             
             # Colonnes pour affichage en grille
             if len(reg_sources) > 1:
@@ -278,7 +278,7 @@ def _render_source_card(source, index):
                     <strong style="color: #2c3e50; font-size: 14px;">{regulation}</strong>
                 </div>
                 <div style="color: #7f8c8d; font-size: 12px;">
-                    📄 {section} • 📍 {pages}
+                    {section} • Page {pages}
                 </div>
             </div>
             """, unsafe_allow_html=True)
@@ -335,7 +335,7 @@ def _render_source_card(source, index):
                             font-size: 10px;
                             font-weight: 600;
                             text-transform: uppercase;
-                        ">📄</span>
+                        ">DOC</span>
                         <span style="font-weight: 500;">{document_name}</span>
                         <span style="color: #7f8c8d; font-size: 11px;">• Page {pages}</span>
                     </div>
@@ -421,7 +421,7 @@ def _render_source_card(source, index):
                         font-size: 11px;
                         font-weight: 600;
                         text-transform: uppercase;
-                    ">⚠️ Document</span>
+                    ">Document</span>
                     <span style="
                         color: #7f8c8d;
                         font-style: italic;
@@ -431,7 +431,7 @@ def _render_source_card(source, index):
                         border-radius: 8px;
                         border: 1px solid rgba(243, 156, 18, 0.2);
                     ">
-                        📄 {document_name} (lien non disponible)
+                        {document_name} (lien non disponible)
                     </span>
                 </div>
             </div>
@@ -511,7 +511,7 @@ def _render_source_card_minimal(source, index):
         
         with col2:
             # Bouton unique et efficace
-            if file_path and st.button("👁 Voir", key=f"view_{index}", help="Voir le document"):
+            if file_path and st.button("Voir", key=f"view_{index}", help="Voir le document"):
                 if os.path.exists(file_path):
                     # Formatage sécurisé du numéro de page
                     page_raw = source.get('page', source.get('pages', 1))
@@ -641,7 +641,7 @@ def display_images(images, max_height=300, section_key=None, t=None, config=None
                             st.image(
                                 image_url,
                                 caption=None,  # Pas de légende ici, on l'ajoute plus bas
-                                use_container_width=True
+                                width='stretch'
                             )
                         
                         # Description tronquée courte
@@ -649,7 +649,7 @@ def display_images(images, max_height=300, section_key=None, t=None, config=None
                         st.caption(f"<p style='color: white; font-size: 0.8em;'> {short_desc} </p>", unsafe_allow_html=True)
                         
                         # Bouton de détail plus discret
-                        if st.button(f"📝", key=f"detail_btn_{section_key}_{i}", help=t("view_detail") if t else "Voir le détail"):
+                        if st.button(f"Détail", key=f"detail_btn_{section_key}_{i}", help=t("view_detail") if t else "Voir le détail"):
                             st.session_state[f"selected_image_{section_key}"] = {
                                 "url": image_url,
                                 "description": description
@@ -667,7 +667,7 @@ def display_images(images, max_height=300, section_key=None, t=None, config=None
                 with col1:
                     st.subheader(t("image_detail") if t else "Détail de l'image")
                 with col2:
-                    if st.button("❌", key=f"close_detail_{section_key}", help=t("close") if t else "Fermer"):
+                    if st.button("Fermer", key=f"close_detail_{section_key}", help=t("close") if t else "Fermer"):
                         st.session_state[f"selected_image_{section_key}"] = None
                         st.rerun()
                 
@@ -682,7 +682,7 @@ def display_images(images, max_height=300, section_key=None, t=None, config=None
                         """, unsafe_allow_html=True)
                     else:
                         # Pour les URL normales, utiliser st.image
-                        st.image(sel_img["url"], use_container_width=True)
+                        st.image(sel_img["url"], width='stretch')
                     
                     # Description complète dans un container discret
                     with st.container():
@@ -700,7 +700,7 @@ def display_tables(tables, t=None):
     total_tables = len(tables)
     
     # Encapsuler dans un expander global comme les sources
-    with st.expander(f"📊 {total_tables} tableau{'x' if total_tables > 1 else ''}", expanded=False):
+    with st.expander(f"{total_tables} tableau{'x' if total_tables > 1 else ''}", expanded=False):
         st.markdown("""
         <style>
         [data-testid="stExpander"] {
@@ -746,7 +746,7 @@ def display_tables(tables, t=None):
                 if df is not None:
                     # Corriger les noms de colonnes
                     df.columns = fix_column_names(df.columns)
-                    st.dataframe(df, use_container_width=True)
+                    st.dataframe(df, width='stretch')
                     continue
             
             # Étape 2: Traiter différents formats de données structurées
@@ -757,13 +757,13 @@ def display_tables(tables, t=None):
                         # Corriger les noms de colonnes
                         column_names = fix_column_names(content[0] if len(content) > 0 else None)
                         df = pd.DataFrame(content[1:], columns=column_names)
-                        st.dataframe(df, use_container_width=True)
+                        st.dataframe(df, width='stretch')
                     else:
                         st.write("Tableau vide")
                 elif isinstance(content, list) and all(isinstance(row, dict) for row in content):
                     # Cas d'une liste de dictionnaires
                     df = pd.DataFrame(content)
-                    st.dataframe(df, use_container_width=True)
+                    st.dataframe(df, width='stretch')
                 else:
                     # Si le contenu est une chaîne, essayer de l'analyser comme un tableau
                     if isinstance(content, str):
@@ -784,7 +784,7 @@ def display_tables(tables, t=None):
                                     # Corriger les noms de colonnes
                                     column_names = fix_column_names(rows[0] if len(rows) > 0 else None)
                                     df = pd.DataFrame(rows[1:], columns=column_names)
-                                    st.dataframe(df, use_container_width=True)
+                                    st.dataframe(df, width='stretch')
                                     continue
                         
                         # Si toutes les tentatives échouent, afficher tel quel mais avec un format amélioré
@@ -803,22 +803,26 @@ def display_tables(tables, t=None):
 
 def stream_assistant_response(orchestrator, query, settings, t):
     """Gère l'affichage d'une réponse en streaming"""
-    
+
+    print(f"[QUERY START] Processing: '{query[:50]}...'")
+    print(f"[QUERY SETTINGS] Images: {settings['use_images']}, Tables: {settings['use_tables']}")
+
     # Créer un placeholder pour l'indicateur d'analyse
     analysis_placeholder = st.empty()
-    
+
     # Créer un placeholder pour la réponse
     response_container = st.empty()
     response_text = ""
-    
+
     # Variables pour stocker les métadonnées
     analysis_data = None
     images = []
     tables = []
     sources = []
-    
+
     try:
         # Démarrer le streaming avec contexte conversationnel
+        print(f"[STREAMING] Starting orchestrator.process_query_stream...")
         for chunk in orchestrator.process_query_stream(
             query,
             use_images=settings["use_images"],

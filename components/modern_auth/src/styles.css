@@ -1,0 +1,128 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* DaisyUI base configuration */
+@layer base {
+  html {
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    font-feature-settings: 'cv05', 'cv06', 'cv07', 'cv08';
+  }
+}
+
+/* Enhanced animations */
+@layer components {
+  .animate-slide-up {
+    animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-out;
+  }
+
+  /* Focus ring improvement */
+  .input:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+
+  /* Button hover effects */
+  .btn {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Card styling */
+  .card {
+    backdrop-filter: blur(20px);
+    border-radius: 16px;
+  }
+
+  /* Custom input styling */
+  .input {
+    border-radius: 8px;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    transition: all 0.2s ease;
+  }
+
+  .input::placeholder {
+    color: #9ca3af;
+    opacity: 1;
+  }
+
+  /* Alert styling */
+  .alert {
+    border-radius: 12px;
+    padding: 12px 16px;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    border-width: 1px;
+  }
+
+  /* Label text styling */
+  .label-text {
+    font-size: 0.875rem;
+    line-height: 1.25;
+    font-weight: 500;
+  }
+}
+
+/* Keyframe animations */
+@keyframes slideUp {
+  0% {
+    transform: translateY(20px) scale(0.95);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive design improvements */
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .transition-all {
+    transition-property: all;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+  }
+}
+
+/* Light theme overrides for consistency */
+.light {
+  --fallback-b1: #ffffff;
+  --fallback-b2: #f9fafb;
+  --fallback-b3: #f3f4f6;
+  --fallback-bc: #1f2937;
+}
+
+/* Dark mode support (optional) */
+@media (prefers-color-scheme: dark) {
+  .dark {
+    --fallback-b1: #1f2937;
+    --fallback-b2: #111827;
+    --fallback-b3: #0f172a;
+    --fallback-bc: #f9fafb;
+  }
+}

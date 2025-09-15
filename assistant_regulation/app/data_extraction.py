@@ -9,7 +9,6 @@ import re
 import ast
 from datetime import datetime
 
-
 def extract_table_from_text(text):
     """
     Extrait les tableaux du texte et les convertit en DataFrame pandas.

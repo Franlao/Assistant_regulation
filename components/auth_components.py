@@ -177,7 +177,7 @@ def render_login_form() -> bool:
         
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
-            login_submitted = st.form_submit_button("🚀 Se connecter", use_container_width=True, type="primary")
+            login_submitted = st.form_submit_button("🚀 Se connecter", width='stretch', type="primary")
         
         if login_submitted:
             if not username or not password:
@@ -239,7 +239,7 @@ def render_user_info():
     """, unsafe_allow_html=True)
     
     # Bouton de déconnexion
-    if st.button("🚪 Déconnexion", use_container_width=True, key="logout_btn"):
+    if st.button("🚪 Déconnexion", width='stretch', key="logout_btn"):
         logout()
         st.rerun()
 

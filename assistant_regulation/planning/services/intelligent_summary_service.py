@@ -17,6 +17,10 @@ import threading
 import time
 import ollama
 from mistralai import Mistral, UserMessage
+try:
+    from openai import OpenAI
+except ImportError:
+    OpenAI = None
 
 # Configuration du logging
 logging.basicConfig(level=logging.WARNING)
@@ -55,9 +59,10 @@ class IntelligentSummaryService:
         self.llm_provider = llm_provider
         self.model_name = model_name
         self.mistral_client = None
+        self.openai_client = None
         self.max_workers = max_workers
         self._lock = threading.Lock()  # Pour la sécurité thread
-        
+
         if llm_provider == "mistral":
             try:
                 import os
@@ -66,6 +71,19 @@ class IntelligentSummaryService:
                     self.mistral_client = Mistral(api_key=api_key)
             except Exception as e:
                 logger.warning(f"Impossible d'initialiser Mistral: {e}")
+                self.llm_provider = "ollama"
+        elif llm_provider == "openai":
+            try:
+                if OpenAI is None:
+                    raise ImportError("openai package not installed")
+                import os
+                api_key = os.getenv("OPENAI_API_KEY")
+                if api_key:
+                    self.openai_client = OpenAI(api_key=api_key)
+                else:
+                    raise EnvironmentError("OPENAI_API_KEY not set")
+            except Exception as e:
+                logger.warning(f"Impossible d'initialiser OpenAI: {e}")
                 self.llm_provider = "ollama"
     
     def calculate_target_length(self, total_pages: int, total_chunks: int) -> Tuple[int, float]:
@@ -238,6 +256,15 @@ RÉSUMÉ COMPLET:"""
                 response = self.mistral_client.chat.complete(
                     model=self.model_name,
                     messages=messages,
+                    temperature=0.1,
+                    max_tokens=max_tokens
+                )
+                return response.choices[0].message.content.strip()
+            elif self.llm_provider == "openai" and self.openai_client:
+                # OpenAI API est thread-safe
+                response = self.openai_client.chat.completions.create(
+                    model=self.model_name,
+                    messages=[{"role": "user", "content": prompt}],
                     temperature=0.1,
                     max_tokens=max_tokens
                 )

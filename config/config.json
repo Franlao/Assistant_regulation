@@ -5,7 +5,8 @@
   "llm": {
     "available_providers": [
       "ollama",
-      "mistral"
+      "mistral",
+      "openai"
     ],
     "default_provider": "mistral",
     "ollama_models": [
@@ -20,8 +21,25 @@
       "mistral-large-latest",
       "open-mixtral-8x7b"
     ],
+    "openai_models": [
+      "chatgpt-4o-latest",
+      "gpt-4o",
+      "gpt-4o-mini",
+      "gpt-4.1",
+      "gpt-4.1-mini",
+      "gpt-4.1-nano",
+      "gpt-5",
+      "gpt-5-mini",
+      "gpt-5-nano",
+      "o1",
+      "o1-mini",
+      "o1-pro",
+      "o3",
+      "o3-mini"
+    ],
     "default_ollama_model": "llama3.2",
     "default_mistral_model": "mistral-medium",
+    "default_openai_model": "chatgpt-4o-latest",
     "temperature": 0.3,
     "max_tokens": 1024,
     "timeout": 300
@@ -35,7 +53,7 @@
     "session_timeout_hours": 24
   },
   "rag": {
-    "enable_verification": false,
+    "enable_verification": true,
     "use_images": true,
     "use_tables": true,
     "default_top_k": 10,
@@ -105,7 +123,9 @@
     "default_model": "jina-reranker-m0",
     "api_url": "https://api.jina.ai/v1/rerank",
     "enabled": true,
-    "timeout": 15,
+    "timeout": 60,
+    "max_retries": 2,
+    "retry_delay": 1.0,
     "disable_on_railway": true
   },
   "assets_dir": "assets",

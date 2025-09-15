@@ -12,6 +12,10 @@ from dataclasses import dataclass, asdict
 from enum import Enum
 import ollama
 from mistralai import Mistral,UserMessage
+try:
+    from openai import OpenAI
+except ImportError:
+    OpenAI = None
 
 # Configuration du logging (moins verbeux par défaut)
 logging.basicConfig(level=logging.WARNING)
@@ -47,7 +51,8 @@ class IntelligentRoutingService:
         self.llm_provider = llm_provider
         self.model_name = model_name
         self.mistral_client = None
-        
+        self.openai_client = None
+
         if llm_provider == "mistral":
             # Initialiser le client Mistral si nécessaire
             try:
@@ -58,6 +63,19 @@ class IntelligentRoutingService:
             except Exception as e:
                 logger.warning(f"Impossible d'initialiser Mistral: {e}")
                 self.llm_provider = "ollama"  # Fallback vers Ollama
+        elif llm_provider == "openai":
+            try:
+                if OpenAI is None:
+                    raise ImportError("openai package not installed")
+                import os
+                api_key = os.getenv("OPENAI_API_KEY")
+                if api_key:
+                    self.openai_client = OpenAI(api_key=api_key)
+                else:
+                    raise EnvironmentError("OPENAI_API_KEY not set")
+            except Exception as e:
+                logger.warning(f"Impossible d'initialiser OpenAI: {e}")
+                self.llm_provider = "ollama"
     
     def _get_analysis_prompt(self, query: str) -> str:
         """Construit le prompt d'analyse pour le LLM"""
@@ -123,7 +141,16 @@ ANALYSE:"""
                     response_format={"type": "json_object"}  # Force la sortie JSON
                 )
                 return response.choices[0].message.content
-            
+            elif self.llm_provider == "openai" and self.openai_client:
+                # Utiliser OpenAI avec mode JSON pour garantir une sortie JSON valide
+                response = self.openai_client.chat.completions.create(
+                    model=self.model_name,
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.1,
+                    max_tokens=500,
+                    response_format={"type": "json_object"}  # Force la sortie JSON
+                )
+                return response.choices[0].message.content
             else:
                 # Utiliser Ollama
                 response = ollama.chat(

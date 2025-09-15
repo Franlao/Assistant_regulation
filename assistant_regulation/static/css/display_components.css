@@ -1,0 +1,221 @@
+/* 
+Styles CSS pour les composants d'affichage - Style daisyUI sobre et moderne
+*/
+
+/* Variables CSS pour cohérence avec daisyUI */
+:root {
+  --rounded-box: 1rem;
+  --rounded-btn: 0.5rem;
+  --animation-btn: 0.25s;
+  --animation-input: 0.2s;
+  --btn-focus-scale: 0.95;
+  --border-btn: 1px;
+  --tab-border: 1px;
+}
+
+/* Base styles pour les conteneurs */
+.display-container {
+  @apply bg-base-100 rounded-box p-4;
+}
+
+/* Styles pour les expanders - Style daisyUI minimal */
+[data-testid="stExpander"] {
+  @apply bg-base-100 border border-base-300 rounded-box;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+}
+
+[data-testid="stExpander"]:hover {
+  @apply border-base-400;
+}
+
+/* Cartes d'images - Style daisyUI card */
+.image-container {
+  @apply border border-base-300 rounded-btn overflow-hidden mb-2;
+  transition: all var(--animation-input) ease-in-out;
+}
+
+.image-container:hover {
+  @apply border-base-400;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.image-display {
+  @apply w-full flex items-center justify-center bg-base-50;
+}
+
+.image-display img {
+  @apply max-w-full object-contain;
+  transition: transform var(--animation-input) ease-in-out;
+}
+
+.image-container:hover img {
+  transform: scale(1.02);
+}
+
+/* Modal d'images - Style daisyUI modal */
+.image-detail-modal {
+  @apply w-full flex justify-center my-4;
+}
+
+.image-detail-modal img {
+  @apply max-w-full rounded-btn;
+  max-height: 500px;
+  object-fit: contain;
+}
+
+/* Cartes de sources - Style daisyUI card subtil */
+.source-card {
+  @apply bg-base-100 border border-base-300 rounded-box p-4 mb-2;
+  transition: all var(--animation-input) ease-in-out;
+}
+
+.source-card:hover {
+  @apply border-primary/20 shadow-sm;
+}
+
+.source-header {
+  @apply flex items-center gap-2 mb-2;
+}
+
+.source-badge {
+  @apply badge badge-primary badge-sm;
+}
+
+.source-title {
+  @apply text-base-content text-sm font-medium;
+}
+
+.source-meta {
+  @apply text-base-content/60 text-xs;
+}
+
+/* Badges de confiance - Style daisyUI badge */
+.confidence-badge {
+  @apply badge badge-xs;
+}
+
+.confidence-high {
+  @apply badge-success;
+}
+
+.confidence-medium {
+  @apply badge-warning;
+}
+
+.confidence-low {
+  @apply badge-error;
+}
+
+/* Informations de documents - Style daisyUI alert subtil */
+.document-info {
+  @apply bg-info/10 border border-info/20 rounded-btn p-3;
+  border-left: 4px solid hsl(var(--in));
+}
+
+.document-content {
+  @apply text-base-content text-sm leading-relaxed flex items-center gap-2;
+}
+
+.document-badge {
+  @apply badge badge-success badge-xs;
+}
+
+.document-name {
+  @apply font-medium;
+}
+
+.document-page {
+  @apply text-base-content/60 text-xs;
+}
+
+/* Messages d'assistant - Style daisyUI chat bubble */
+.assistant-message {
+  @apply bg-base-200/50 border-l-4 border-primary p-4 my-2 rounded-r-box;
+}
+
+.assistant-header {
+  @apply flex justify-between items-center mb-2;
+}
+
+.assistant-content {
+  @apply text-base-content leading-relaxed;
+}
+
+/* Animation de frappe */
+.typing-cursor {
+  @apply inline-block;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+/* Légendes d'images */
+.image-caption {
+  @apply text-base-content/60 text-xs italic mt-1;
+}
+
+/* Conteneurs de tableaux */
+.table-container {
+  @apply my-2;
+}
+
+/* Boutons - Style daisyUI harmonieux */
+.view-button {
+  @apply btn btn-sm btn-ghost;
+}
+
+.view-button:hover {
+  @apply btn-primary;
+}
+
+.detail-button {
+  @apply btn btn-xs btn-soft btn-primary;
+}
+
+/* Sélecteur de taille d'image */
+.image-size-selector {
+  @apply radio radio-sm radio-primary;
+}
+
+/* Responsive - Mobile first comme daisyUI */
+@media (max-width: 768px) {
+  .source-card {
+    @apply p-3;
+  }
+  
+  .document-content {
+    @apply text-xs flex-col items-start gap-1;
+  }
+  
+  .assistant-header {
+    @apply flex-col items-start gap-1;
+  }
+  
+  .image-container {
+    @apply mb-1;
+  }
+}
+
+/* Theme responsive - Support thème sombre */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --rounded-box: 1rem;
+  }
+}
+
+/* Micro-interactions daisyUI */
+.interactive-element {
+  transition: all var(--animation-btn) ease-in-out;
+}
+
+.interactive-element:active {
+  transform: scale(var(--btn-focus-scale));
+}
+
+/* États de focus accessibles */
+.focusable:focus-visible {
+  @apply outline-2 outline-primary outline-offset-2;
+}

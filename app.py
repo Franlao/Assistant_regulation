@@ -15,12 +15,33 @@ from pages.database import (
 )
 from pages.summary import main as render_summary_page
 from utils.session_utils import initialize_session_state
-from components.auth_components import require_authentication, require_admin_access
+from components.modern_auth_integration import require_modern_authentication, require_modern_admin_access, render_modern_sidebar_user_info, render_dedicated_login_page
 from translations import get_text
 from config import get_config
 from dotenv import load_dotenv
+import logging
 
 load_dotenv()
+
+# Configuration des logs d'optimisation
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s | %(name)-35s | %(levelname)-5s | %(message)s'
+)
+
+# Activer spécifiquement les logs d'optimisation
+optimization_loggers = [
+    'assistant_regulation.planning.services.retrieval_service',
+    'assistant_regulation.planning.services.validation_service',
+    'assistant_regulation.planning.sync.query_processor'
+]
+
+for logger_name in optimization_loggers:
+    logger = logging.getLogger(logger_name)
+    logger.setLevel(logging.INFO)
+
+print("Logs d'optimisation activés dans la console")
+
 # Ajouter après l'import de streamlit
 os.environ['STREAMLIT_SERVER_TIMEOUT'] = '300'
 
@@ -266,8 +287,7 @@ initialize_session_state()
 def render_configuration_page(t, config):
     """Rendu de la page configuration intégrée"""
     # Vérifier l'authentification pour la configuration
-    if not require_authentication():
-        st.warning("🔐 Veuillez vous authentifier pour accéder à la configuration")
+    if not require_modern_authentication():
         return
     
     # Titre centré exactement comme Summary
@@ -310,15 +330,14 @@ def render_configuration_page(t, config):
 def render_database_page(t, config):
     """Rendu de la page database intégrée"""
     # Vérification admin obligatoire
-    if not require_admin_access():
-        st.warning("Accès administrateur requis pour gérer la base de données")
+    if not require_modern_admin_access():
         return
     
     # Titre centré exactement comme Summary
     st.markdown("""
     <div style="text-align: center; padding: 2rem 0;">
         <h1 style="color: #343a40; font-weight: 400; font-size: 2rem; margin: 0;">Gestionnaire de Base de Données</h1>
-        <p style="color: #6c757d; font-size: 1rem; margin: 0.5rem 0 0 0;">Interface d'administration ChromaDB** - Accès administrateur requis</p>
+        <p style="color: #6c757d; font-size: 1rem; margin: 0.5rem 0 0 0;">Interface d'administration ChromaDB:Accès administrateur requis</p>
     </div>
     """, unsafe_allow_html=True)
     # État de la base
@@ -400,6 +419,9 @@ elif st.session_state.selected_page == "Configuration":
     
 elif st.session_state.selected_page == "Database":
     render_database_page(t, config)
+    
+elif st.session_state.selected_page == "Login":
+    render_dedicated_login_page()
 
 # Barre de statut pour les tâches asynchrones
 try:

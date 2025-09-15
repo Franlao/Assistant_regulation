@@ -108,11 +108,15 @@ class AsyncTaskManager:
                     self.tasks[task_id].result = result
                     
         except Exception as e:
+            import traceback
+            error_details = f"Exception: {str(e)}\nTraceback: {traceback.format_exc()}"
+            print(f"[TASK ERROR] Task {task_id} failed: {error_details}")
+
             with self._lock:
                 if task_id in self.tasks:
                     self.tasks[task_id].status = TaskStatus.FAILED
                     self.tasks[task_id].completed_at = datetime.now()
-                    self.tasks[task_id].error = str(e)
+                    self.tasks[task_id].error = error_details
                     self.tasks[task_id].message = f"Erreur: {str(e)}"
         
         finally:
@@ -193,7 +197,10 @@ def async_upload_files(uploaded_files: List, text_only: bool, overwrite: bool,
             if progress_callback:
                 progress_callback(0.1 + (i / len(uploaded_files)) * 0.3, f"Sauvegarde: {file_data['name']}")
             
-            data_path = os.path.join(data_dir, file_data['name'])
+            # Extraire juste le nom du fichier sans le chemin
+            filename = os.path.basename(file_data['name'])
+            data_path = os.path.join(data_dir, filename)
+
             with open(data_path, "wb") as f:
                 f.write(file_data['content'])
             saved_paths.append(data_path)
@@ -266,33 +273,42 @@ def async_upload_files(uploaded_files: List, text_only: bool, overwrite: bool,
         raise
 
 
-def async_folder_ingestion(folder_path: str, text_only: bool, parallel: bool, 
+def async_folder_ingestion(folder_path: str, text_only: bool, parallel: bool,
                           workers: int, progress_callback: Callable[[float, str], None] = None) -> Dict[str, Any]:
     """Tâche asynchrone pour l'ingestion de dossier"""
     try:
+        # Test basique d'abord
         if progress_callback:
-            progress_callback(0.1, f"Vérification du dossier {folder_path}...")
-        
+            progress_callback(0.1, "Test de base...")
+
+        # Convertir en chemin absolu pour éviter les problèmes de working directory
+        folder_path = os.path.abspath(folder_path)
+
         if not os.path.exists(folder_path):
             raise ValueError(f"Le dossier {folder_path} n'existe pas")
-        
+
+        # Test d'import - c'est probablement ici que ça échoue
+        if progress_callback:
+            progress_callback(0.2, "Test d'import des modules...")
+
         # Import ici pour éviter les problèmes de circular import
         from assistant_regulation.planning.Database import PDFIngestionManager
-        
+
         if progress_callback:
-            progress_callback(0.2, "Initialisation du gestionnaire...")
-        
+            progress_callback(0.3, "Initialisation du gestionnaire...")
+
         manager = PDFIngestionManager()
-        
+
         if progress_callback:
-            progress_callback(0.3, "Démarrage de l'ingestion...")
-        
-        # Note: Le PDFIngestionManager devrait être modifié pour accepter un callback de progrès
+            progress_callback(0.4, "Démarrage de l'ingestion...")
+
+        # Passer le callback de progression au manager
         success = manager.ingest_from_folder(
             folder_path,
             text_only=text_only,
             parallel=parallel,
-            workers=workers
+            workers=workers,
+            progress_callback=progress_callback
         )
         
         if progress_callback:

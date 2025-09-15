@@ -257,14 +257,14 @@ class QueryProcessor:
             
             # Si aucune variante ne fonctionne, faire une recherche générale
             if not text_results:
-                # DEBUG supprimé
+                print(f"[FALLBACK] No regulation match, using general retrieve() - Query: '{query[:30]}...'")
                 text_results = self.retrieval_service.retrieve(
                     query=query,
                     use_images=False,
                     use_tables=False,
                     top_k=top_k,
                 )["text"]  # Récupérer seulement les chunks de texte
-                # DEBUG supprimé
+                print(f"[FALLBACK] Retrieved {len(text_results) if text_results else 0} text chunks")
             
             result = self._complete_multimodal_search(
                 text_results, query, use_images, use_tables, top_k
@@ -326,9 +326,20 @@ class QueryProcessor:
                 )
                 # DEBUG supprimé
         
-        # Validation si activée
+        # Validation si activée avec optimisations
         if self.enable_verification and self.validation_service:
-            chunks = self.validation_service.validate_chunks(query, chunks)
+            import logging
+            logger = logging.getLogger(__name__)
+            total_input = sum(len(chunks.get(k, [])) for k in ["text", "images", "tables"])
+
+            chunks = self.validation_service.validate_chunks(
+                query,
+                chunks,
+                use_parallel=True  # Utiliser la parallélisation
+            )
+
+            total_output = sum(len(chunks.get(k, [])) for k in ["text", "images", "tables"])
+            logger.info(f"QUERY PROCESSOR - Validation complete: {total_input} -> {total_output} chunks")
             # DEBUG supprimé
         
         # DEBUG supprimé

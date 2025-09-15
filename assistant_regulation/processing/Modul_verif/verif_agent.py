@@ -2,6 +2,8 @@ from typing import List, Dict, Union
 import os
 import logging
 import json
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import time
 
 # Nouveau : service centralisé des prompts
 from assistant_regulation.planning.services.prompting_service import PromptingService
@@ -68,12 +70,14 @@ class VerifAgent:
         top_k: int = 10,
         use_rerank: bool = True,
         verbose: bool = False,
+        use_parallel: bool = True,
+        max_workers: int = 4,
     ) -> List[Dict]:
-        """Filtre les chunks via LLM.
+        """Filtre les chunks via LLM avec parallélisation optionnelle.
 
         Étapes :
         1. (Optionnel) Rerank pour garder le top_k le plus pertinent.
-        2. Question au LLM avec prompt JSON.
+        2. Question au LLM avec prompt JSON (séquentiel ou parallèle).
         3. Utilise le champ 'confidence' comparé au `confidence_threshold`.
         """
 
@@ -88,61 +92,133 @@ class VerifAgent:
         else:
             chunks = chunks[:top_k]
 
+        if not chunks:
+            return []
+
+        # Décider entre parallèle et séquentiel selon le nombre de chunks
+        if use_parallel and len(chunks) > 2:
+            return self._verify_chunks_parallel(
+                question, chunks, confidence_threshold, verbose, max_workers
+            )
+        else:
+            return self._verify_chunks_sequential(
+                question, chunks, confidence_threshold, verbose
+            )
+
+    def _verify_chunks_sequential(
+        self,
+        question: str,
+        chunks: List[Dict],
+        confidence_threshold: float,
+        verbose: bool,
+    ) -> List[Dict]:
+        """Validation séquentielle (mode original)."""
         valid_chunks: List[Dict] = []
-        rejected_chunks: List[Dict] = []
 
         for i, chunk in enumerate(chunks):
             try:
-                if verbose:
-                    # Logs de debug supprimés
-                    pass
+                result = self._verify_single_chunk(question, chunk, confidence_threshold)
+                if result["is_relevant"]:
+                    valid_chunks.append(result["chunk"])
 
-                prompt = self._generate_verification_prompt(question, chunk)
+            except Exception as e:
+                self.logger.error(f"Erreur de vérification séquentielle chunk {i}: {str(e)}")
+                continue
 
-                if verbose:
-                    # Logs de debug supprimés
-                    pass
+        return valid_chunks
 
-                response = self._get_llm_response(prompt)
+    def _verify_chunks_parallel(
+        self,
+        question: str,
+        chunks: List[Dict],
+        confidence_threshold: float,
+        verbose: bool,
+        max_workers: int,
+    ) -> List[Dict]:
+        """Validation parallèle avec ThreadPoolExecutor."""
+        valid_chunks: List[Dict] = []
+        start_time = time.time()
 
-                if verbose:
-                    # Logs de debug supprimés
-                    pass
+        # Optimiser le nombre de workers selon le nombre de chunks
+        optimal_workers = min(max_workers, len(chunks), 6)  # Max 6 pour éviter les timeouts
 
-                useful, confidence = self._parse_llm_response(response)
+        with ThreadPoolExecutor(max_workers=optimal_workers) as executor:
+            # Soumettre toutes les tâches de validation
+            future_to_chunk = {}
+            for i, chunk in enumerate(chunks):
+                future = executor.submit(
+                    self._verify_single_chunk, question, chunk, confidence_threshold
+                )
+                future_to_chunk[future] = (i, chunk)
 
-                is_relevant = useful and (confidence is None or confidence >= confidence_threshold)
+            # Collecter les résultats avec gestion d'erreurs robuste
+            for future in as_completed(future_to_chunk, timeout=30):
+                chunk_index, original_chunk = future_to_chunk[future]
+                try:
+                    result = future.result(timeout=5)  # Timeout per chunk
+                    if result["is_relevant"]:
+                        valid_chunks.append(result["chunk"])
 
-                if verbose:
-                    # Logs de debug supprimés
-                    pass
-
-                if is_relevant:
+                except Exception as e:
+                    self.logger.warning(f"Validation parallèle échouée pour chunk {chunk_index}: {e}")
+                    # En cas d'erreur, on peut décider d'inclure ou non le chunk
+                    # Pour être conservatif, on l'inclut sans validation
                     valid_chunks.append({
+                        **original_chunk,
+                        'verification_response': f"Erreur: {str(e)}",
+                        'verification_model': self.model_name,
+                        'verification_confidence': 0.5,  # Score neutre
+                    })
+
+        elapsed = time.time() - start_time
+        if verbose:
+            self.logger.info(f"Validation parallèle: {len(chunks)} chunks en {elapsed:.2f}s "
+                           f"({optimal_workers} workers) -> {len(valid_chunks)} valides")
+
+        return valid_chunks
+
+    def _verify_single_chunk(
+        self, question: str, chunk: Dict, confidence_threshold: float
+    ) -> Dict:
+        """Valide un seul chunk et retourne le résultat structuré."""
+        try:
+            prompt = self._generate_verification_prompt(question, chunk)
+            response = self._get_llm_response(prompt)
+            useful, confidence = self._parse_llm_response(response)
+
+            is_relevant = useful and (confidence is None or confidence >= confidence_threshold)
+
+            if is_relevant:
+                return {
+                    "is_relevant": True,
+                    "chunk": {
                         **chunk,
                         'verification_response': response,
                         'verification_model': self.model_name,
                         'verification_confidence': confidence,
-                    })
-                else:
-                    rejected_chunks.append({
+                    }
+                }
+            else:
+                return {
+                    "is_relevant": False,
+                    "chunk": {
                         **chunk,
                         'verification_response': response,
                         'verification_confidence': confidence,
-                    })
+                    }
+                }
 
-            except Exception as e:
-                self.logger.error(f"Erreur de vérification: {str(e)}")
-                if verbose:
-                    # Log détaillé supprimé en mode silencieux
-                    pass
-                continue
-            
-        if verbose:
-            # Logs de debug supprimés
-            pass
-
-        return valid_chunks
+        except Exception as e:
+            # En cas d'erreur, considérer le chunk comme valide avec score neutre
+            return {
+                "is_relevant": True,
+                "chunk": {
+                    **chunk,
+                    'verification_response': f"Erreur validation: {str(e)}",
+                    'verification_model': self.model_name,
+                    'verification_confidence': 0.5,
+                }
+            }
 
     def _get_llm_response(self, prompt: str) -> str:
         """Obtient la réponse du LLM"""

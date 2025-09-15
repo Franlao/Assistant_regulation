@@ -5,7 +5,8 @@ Regroupe toutes les configurations utilisateur
 
 import streamlit as st
 from utils.session_utils import initialize_session_state, update_settings, get_or_create_orchestrator
-from components.auth_components import require_authentication, render_change_password_form
+from components.modern_auth_integration import require_modern_authentication
+from components.auth_components import render_change_password_form
 from config import save_config, reload_config
 import os
 
@@ -31,7 +32,7 @@ def render_llm_configuration():
                 "Fournisseur LLM",
                 options=config.llm.available_providers,
                 index=config.llm.available_providers.index(current_settings.get("llm_provider", config.llm.default_provider)),
-                help="Choisissez entre Ollama (local) ou Mistral AI (cloud)"
+                help="Choisissez entre Ollama (local), Mistral AI (cloud) ou OpenAI (cloud)"
             )
         
         with col2:
@@ -54,8 +55,10 @@ def render_llm_configuration():
         # Informations sur le provider sélectionné
         if llm_provider == "ollama":
             st.info("**Ollama (Local)** - Traitement sur votre machine, plus privé mais nécessite des ressources locales")
-        else:
+        elif llm_provider == "mistral":
             st.info("**Mistral AI (Cloud)** - Traitement dans le cloud, plus rapide mais nécessite une connexion internet")
+        elif llm_provider == "openai":
+            st.info("**OpenAI (Cloud)** - Modèles GPT les plus avancés (GPT-4o, GPT-5, O1) nécessite une clé API OpenAI")
         
         # Tester la connexion
         if st.button("Tester la Connexion", type="secondary"):
@@ -488,7 +491,7 @@ def main():
     """Fonction principale de la page configuration"""
     
     # Vérifier l'authentification
-    if not require_authentication():
+    if not require_modern_authentication():
         return
     
     # Charger les styles personnalisés

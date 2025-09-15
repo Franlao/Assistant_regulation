@@ -5,6 +5,7 @@ import streamlit as st
 from assistant_regulation.planning.Orchestrator.modular_orchestrator import ModularOrchestrator
 from config import save_config, reload_config
 from assistant_regulation.app.streamlit_utils import export_conversation_to_pdf
+from components.modern_auth_integration import render_modern_sidebar_user_info
 
 
 def render_language_selector(config, t, current_language):
@@ -209,10 +210,13 @@ def render_sidebar(config, t, session_state):
     # Logo
     st.image("assets/IVECO_BUS_Logo_RGB_Web.svg", width=220)
 
+    # ------------------- Profil utilisateur -------------------
+    render_modern_sidebar_user_info()
+
     # ------------------- Navigation -------------------
     st.markdown("### Navigation")
 
-    available_pages = ["Chat", "Summary", "Configuration", "Database"]
+    available_pages = ["Chat", "Summary", "Configuration", "Database", "Login"]
 
     # Initialiser la page sélectionnée
     if 'selected_page' not in session_state:
@@ -233,7 +237,8 @@ def render_sidebar(config, t, session_state):
         "Chat": "Interface conversationnelle RAG",
         "Summary": "Résumés intelligents de réglementations",
         "Configuration": "Paramètres LLM et RAG", 
-        "Database": "Gestion ChromaDB (Admin)"
+        "Database": "Gestion ChromaDB (Admin)",
+        "Login": "Authentification moderne"
     }
 
     if selected_page in page_descriptions:

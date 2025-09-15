@@ -6,6 +6,8 @@ et le routage intelligent des recherches.
 """
 
 import logging
+import re
+import time
 from typing import Dict, Optional
 from dataclasses import dataclass
 from enum import Enum
@@ -44,37 +46,123 @@ class MasterRoutingService:
         # Initialiser les services sous-jacents
         self.knowledge_router = KnowledgeRoutingService(llm_provider, model_name)
         self.intelligent_router = IntelligentRoutingService(llm_provider, model_name)
-    
+
+        # Termes automobiles/réglementaires (besoin de base vectorielle)
+        self.automotive_keywords = [
+            'réglementation', 'règlement', 'norme', 'normes', 'standard',
+            'frein', 'freins', 'freinage', 'classe', 'bus', 'véhicule', 'véhicules',
+            'voiture', 'voitures', 'automobile', 'camion', 'moto',
+            'airbag', 'ceinture', 'sécurité', 'éclairage', 'phare', 'feu',
+            'rétroviseur', 'pneu', 'roue', 'moteur', 'émission', 'constructeur'
+        ]
+
+        # Patterns spécifiques pour codes de réglementation
+        self.regulation_patterns = [
+            r'\bR\s*\d+\b',           # R46, R107, R 127
+            r'\bECE\s+R\s*\d+\b',     # ECE R46
+            r'\bUN\s+R\s*\d+\b'       # UN R46
+        ]
+
+    def _try_fast_routing(self, query: str) -> Optional[MasterRoutingDecision]:
+        """Tentative de routage heuristique rapide sans appel LLM."""
+        query_lower = query.lower()
+
+        # Vérifier les patterns de réglementation spécifiques
+        for pattern in self.regulation_patterns:
+            if re.search(pattern, query, re.IGNORECASE):
+                return self._create_fast_vector_decision(query, "regulation_code_detected")
+
+        # Vérifier les mots-clés automobiles
+        automotive_score = sum(1 for keyword in self.automotive_keywords if keyword in query_lower)
+
+        # Si 2+ mots-clés automobiles → base vectorielle
+        if automotive_score >= 2:
+            return self._create_fast_vector_decision(query, f"automotive_keywords:{automotive_score}")
+
+        # Questions très générales → LLM direct
+        general_patterns = [
+            r'\b(bonjour|salut|hello|merci|thanks)\b',
+            r'\b(qu\'est-ce que|définition|expliquer)\b'
+        ]
+
+        for pattern in general_patterns:
+            if re.search(pattern, query, re.IGNORECASE):
+                return self._create_fast_direct_decision(query, "general_greeting_or_question")
+
+        # Pas de décision rapide possible
+        return None
+
+    def _create_fast_vector_decision(self, query: str, reasoning: str) -> MasterRoutingDecision:
+        """Créer une décision rapide pour recherche vectorielle."""
+        return MasterRoutingDecision(
+            response_strategy=ResponseStrategy.VECTOR_SEARCH,
+            knowledge_source="vector_db",
+            search_config={
+                'search_type': 'classic',
+                'method': 'general_search',
+                'params': {'query': query},
+                'confidence': 0.8,
+                'reasoning': f"Fast routing: {reasoning}"
+            },
+            confidence_score=0.8,
+            reasoning=f"Routage rapide heuristique: {reasoning}",
+            next_actions={'action': 'vector_search', 'method': 'classic'}
+        )
+
+    def _create_fast_direct_decision(self, query: str, reasoning: str) -> MasterRoutingDecision:
+        """Créer une décision rapide pour LLM direct."""
+        return MasterRoutingDecision(
+            response_strategy=ResponseStrategy.DIRECT_LLM,
+            knowledge_source="llm_general",
+            search_config=None,
+            confidence_score=0.8,
+            reasoning=f"Routage rapide heuristique: {reasoning}",
+            next_actions={'action': 'direct_llm'}
+        )
+
     def route_query(self, query: str) -> MasterRoutingDecision:
         """
         Route une requête utilisateur vers la stratégie optimale.
-        
+
         Args:
             query: La requête utilisateur
-            
+
         Returns:
             MasterRoutingDecision avec la stratégie complète
         """
-        logger.info(f"Routage maître pour: {query}")
-        
+        start_time = time.time()
+        print(f"[ROUTING] Starting routing for: '{query[:50]}...'")
+
+        # Routage heuristique rapide (éviter les appels LLM)
+        fast_decision = self._try_fast_routing(query)
+        if fast_decision:
+            elapsed = time.time() - start_time
+            print(f"[ROUTING FAST] Decision in {elapsed:.3f}s: {fast_decision.response_strategy.value}")
+            return fast_decision
+
+        # Fallback sur le routage LLM complet
+        print(f"[ROUTING LLM] Using full LLM routing...")
+
         # Étape 1: Analyser les besoins de connaissances
         knowledge_decision = self.knowledge_router.analyze_knowledge_needs(query)
-        
+
         logger.info(f"Pré-filtrage: {knowledge_decision.knowledge_source.value} "
                    f"(confiance: {knowledge_decision.confidence_score:.2f})")
-        
+
         # Étape 2: Déterminer la stratégie selon le pré-filtrage
         if knowledge_decision.knowledge_source == KnowledgeSource.LLM_GENERAL:
             # Réponse directe du LLM
-            return self._create_direct_llm_decision(query, knowledge_decision)
-            
+            result = self._create_direct_llm_decision(query, knowledge_decision)
         elif knowledge_decision.knowledge_source == KnowledgeSource.VECTOR_DB:
             # Routage intelligent pour la recherche vectorielle
-            return self._create_vector_search_decision(query, knowledge_decision)
-            
+            result = self._create_vector_search_decision(query, knowledge_decision)
         else:  # HYBRID
             # Approche hybride
-            return self._create_hybrid_decision(query, knowledge_decision)
+            result = self._create_hybrid_decision(query, knowledge_decision)
+
+        elapsed = time.time() - start_time
+        print(f"[ROUTING LLM] Decision in {elapsed:.3f}s: {result.response_strategy.value}")
+        return result
     
     def _create_direct_llm_decision(self, query: str, knowledge_decision) -> MasterRoutingDecision:
         """Créer une décision de réponse directe du LLM"""

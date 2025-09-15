@@ -14,9 +14,9 @@ from pathlib import Path
 class LLMConfig:
     """Configuration des modèles de langage"""
     # Providers disponibles
-    available_providers: List[str] = field(default_factory=lambda: ["ollama", "mistral"])
-    default_provider: str = "ollama"
-    
+    available_providers: List[str] = field(default_factory=lambda: ["ollama", "mistral", "openai"])
+    default_provider: str = "mistral"
+
     # Modèles par provider
     ollama_models: List[str] = field(default_factory=lambda: [
         "llama3.2", "mistral", "llama3.2:1b", "granite3.1-moe:3b"
@@ -24,10 +24,16 @@ class LLMConfig:
     mistral_models: List[str] = field(default_factory=lambda: [
         "mistral-medium", "mistral-small", "mistral-large-latest", "open-mixtral-8x7b"
     ])
-    
+    openai_models: List[str] = field(default_factory=lambda: [
+        "chatgpt-4o-latest", "gpt-4o", "gpt-4o-mini", "gpt-4.1", "gpt-4.1-mini",
+        "gpt-4.1-nano", "gpt-5", "gpt-5-mini", "gpt-5-nano", "o1", "o1-mini",
+        "o1-pro", "o3", "o3-mini"
+    ])
+
     # Modèles par défaut
     default_ollama_model: str = "llama3.2"
     default_mistral_model: str = "mistral-medium"
+    default_openai_model: str = "chatgpt-4o-latest"
     
     # Paramètres de génération
     temperature: float = 0.3
@@ -241,6 +247,8 @@ class AppConfig:
             return self.llm.ollama_models
         elif provider == "mistral":
             return self.llm.mistral_models
+        elif provider == "openai":
+            return self.llm.openai_models
         else:
             return []
     
@@ -250,6 +258,8 @@ class AppConfig:
             return self.llm.default_ollama_model
         elif provider == "mistral":
             return self.llm.default_mistral_model
+        elif provider == "openai":
+            return self.llm.default_openai_model
         else:
             return self.llm.default_ollama_model
 

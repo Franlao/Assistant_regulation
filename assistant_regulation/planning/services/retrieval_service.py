@@ -1,10 +1,12 @@
 from typing import Dict, Optional, List, Any
 import logging
 import time
+import hashlib
 from concurrent.futures import ThreadPoolExecutor, as_completed, Future
-from functools import partial
+from functools import partial, lru_cache
 import asyncio
 from dataclasses import dataclass
+from datetime import datetime, timedelta
 
 from assistant_regulation.processing.Modul_emb.TextRetriever import SimpleTextRetriever
 from assistant_regulation.processing.Modul_emb.ImageRetriever import ImageRetriever
@@ -20,6 +22,8 @@ class RetrievalConfig:
     retry_attempts: int = 2
     enable_caching: bool = True
     enable_detailed_logging: bool = False
+    cache_ttl_minutes: int = 10
+    cache_max_size: int = 100
 
 
 class RetrievalService:
@@ -54,8 +58,14 @@ class RetrievalService:
             "successful_calls": 0,
             "failed_calls": 0,
             "average_latency": 0.0,
-            "parallel_efficiency": 0.0
+            "parallel_efficiency": 0.0,
+            "cache_hits": 0,
+            "cache_misses": 0
         }
+
+        # Cache intelligent avec TTL
+        self._result_cache: Dict[str, Dict] = {}
+        self._cache_timestamps: Dict[str, datetime] = {}
 
     # ---------------------------------------------------------------------
     # API public optimisée
@@ -77,13 +87,31 @@ class RetrievalService:
             use_tables: Inclure la recherche de tableaux
             top_k: Nombre de résultats par source
             mode: Mode de parallélisation ("optimized", "fast", "robust")
-            
+
         Returns:
             Dict avec les résultats de recherche par source
         """
         start_time = time.time()
         self.retrieval_stats["total_calls"] += 1
-        
+
+        # Vérifier le cache en premier
+        if self.config.enable_caching:
+            cache_key = self._generate_cache_key(query, use_images, use_tables, top_k, mode)
+            cached_result = self._get_from_cache(cache_key)
+            if cached_result is not None:
+                self.retrieval_stats["cache_hits"] += 1
+                elapsed = time.time() - start_time
+                self._update_stats(elapsed, success=True)
+                # Log toujours les cache hits pour monitoring
+                print(f"[CACHE HIT] {elapsed:.3f}s - Query: '{query[:50]}...' - Key: {cache_key[:12]}...")
+                self.logger.info(f"CACHE HIT en {elapsed:.3f}s - Query: '{query[:50]}...' - Key: {cache_key[:12]}...")
+                return cached_result
+            else:
+                self.retrieval_stats["cache_misses"] += 1
+                # Log les cache misses pour monitoring
+                print(f"[CACHE MISS] Query: '{query[:50]}...' - Key: {cache_key[:12]}...")
+                self.logger.info(f"CACHE MISS - Query: '{query[:50]}...' - Key: {cache_key[:12]}...")
+
         try:
             if mode == "optimized":
                 results = self._retrieve_optimized(query, use_images, use_tables, top_k)
@@ -93,16 +121,24 @@ class RetrievalService:
                 results = self._retrieve_robust(query, use_images, use_tables, top_k)
             else:
                 raise ValueError(f"Mode '{mode}' non supporté. Utilisez: optimized, fast, robust")
-            
+
+            # Mettre en cache le résultat
+            if self.config.enable_caching:
+                self._store_in_cache(cache_key, results)
+                print(f"[CACHE STORE] Query: '{query[:50]}...' - Key: {cache_key[:12]}...")
+                self.logger.info(f"CACHE STORE - Query: '{query[:50]}...' - Key: {cache_key[:12]}...")
+
             # Mise à jour des métriques
             elapsed = time.time() - start_time
             self._update_stats(elapsed, success=True)
-            
-            if self.config.enable_detailed_logging:
-                self.logger.info(f"Recherche réussie en {elapsed:.2f}s - Mode: {mode}")
-            
+
+            total_results = sum(len(results.get(k, [])) for k in ["text", "images", "tables"])
+            cache_status = "MISS" if self.config.enable_caching else "DISABLED"
+            print(f"[RETRIEVAL] {elapsed:.2f}s - Mode: {mode} - Cache: {cache_status} - Results: {total_results}")
+            self.logger.info(f"RETRIEVAL COMPLETE en {elapsed:.2f}s - Mode: {mode} - Cache: {cache_status} - Results: {total_results}")
+
             return results
-            
+
         except Exception as e:
             elapsed = time.time() - start_time
             self._update_stats(elapsed, success=False)
@@ -337,7 +373,113 @@ class RetrievalService:
                 *task_config["args"], 
                 top_k=1
             )
-    
+
+    # ---------------------------------------------------------------------
+    # Cache intelligent avec TTL
+    # ---------------------------------------------------------------------
+    def _generate_cache_key(self, query: str, use_images: bool, use_tables: bool, top_k: int, mode: str) -> str:
+        """Génère une clé de cache basée sur les paramètres de la requête."""
+        # Normaliser la requête pour éviter les variations mineures
+        normalized_query = query.lower().strip()
+
+        # Créer un hash des paramètres
+        params_str = f"{normalized_query}|{use_images}|{use_tables}|{top_k}|{mode}"
+        return hashlib.md5(params_str.encode('utf-8')).hexdigest()
+
+    def _get_from_cache(self, cache_key: str) -> Optional[Dict]:
+        """Récupère un résultat du cache s'il est valide (non expiré)."""
+        if cache_key not in self._result_cache:
+            return None
+
+        # Vérifier l'expiration
+        cache_time = self._cache_timestamps.get(cache_key)
+        if cache_time is None:
+            return None
+
+        ttl_delta = timedelta(minutes=self.config.cache_ttl_minutes)
+        if datetime.now() - cache_time > ttl_delta:
+            # Entrée expirée, la supprimer
+            self._remove_from_cache(cache_key)
+            return None
+
+        return self._result_cache[cache_key].copy()  # Copie pour éviter les modifications
+
+    def _store_in_cache(self, cache_key: str, results: Dict) -> None:
+        """Stocke un résultat dans le cache avec gestion de la taille maximale."""
+        # Nettoyer les entrées expirées si nécessaire
+        self._cleanup_expired_cache_entries()
+
+        # Si le cache est plein, supprimer les entrées les plus anciennes
+        if len(self._result_cache) >= self.config.cache_max_size:
+            self._evict_oldest_cache_entries(self.config.cache_max_size // 4)  # Supprimer 25%
+
+        # Stocker la nouvelle entrée
+        self._result_cache[cache_key] = results.copy()  # Copie pour éviter les modifications
+        self._cache_timestamps[cache_key] = datetime.now()
+
+        if self.config.enable_detailed_logging:
+            self.logger.debug(f"Cache STORE - Key: {cache_key[:20]}... - Size: {len(self._result_cache)}")
+
+    def _remove_from_cache(self, cache_key: str) -> None:
+        """Supprime une entrée du cache."""
+        self._result_cache.pop(cache_key, None)
+        self._cache_timestamps.pop(cache_key, None)
+
+    def _cleanup_expired_cache_entries(self) -> None:
+        """Nettoie les entrées de cache expirées."""
+        now = datetime.now()
+        ttl_delta = timedelta(minutes=self.config.cache_ttl_minutes)
+
+        expired_keys = [
+            key for key, timestamp in self._cache_timestamps.items()
+            if now - timestamp > ttl_delta
+        ]
+
+        for key in expired_keys:
+            self._remove_from_cache(key)
+
+        if self.config.enable_detailed_logging and expired_keys:
+            self.logger.debug(f"Cache CLEANUP - Supprimé {len(expired_keys)} entrées expirées")
+
+    def _evict_oldest_cache_entries(self, count: int) -> None:
+        """Supprime les entrées de cache les plus anciennes."""
+        if not self._cache_timestamps:
+            return
+
+        # Trier par timestamp croissant (plus ancien en premier)
+        sorted_entries = sorted(self._cache_timestamps.items(), key=lambda x: x[1])
+
+        for i in range(min(count, len(sorted_entries))):
+            key_to_remove = sorted_entries[i][0]
+            self._remove_from_cache(key_to_remove)
+
+        if self.config.enable_detailed_logging:
+            self.logger.debug(f"Cache EVICT - Supprimé {min(count, len(sorted_entries))} anciennes entrées")
+
+    def clear_cache(self) -> None:
+        """Vide complètement le cache."""
+        entries_count = len(self._result_cache)
+        self._result_cache.clear()
+        self._cache_timestamps.clear()
+
+        if self.config.enable_detailed_logging:
+            self.logger.info(f"Cache CLEAR - Supprimé {entries_count} entrées")
+
+    def get_cache_stats(self) -> Dict:
+        """Retourne les statistiques du cache."""
+        return {
+            "cache_size": len(self._result_cache),
+            "cache_max_size": self.config.cache_max_size,
+            "cache_ttl_minutes": self.config.cache_ttl_minutes,
+            "cache_hits": self.retrieval_stats["cache_hits"],
+            "cache_misses": self.retrieval_stats["cache_misses"],
+            "hit_rate_percent": (
+                round((self.retrieval_stats["cache_hits"] /
+                      (self.retrieval_stats["cache_hits"] + self.retrieval_stats["cache_misses"]) * 100), 2)
+                if (self.retrieval_stats["cache_hits"] + self.retrieval_stats["cache_misses"]) > 0 else 0.0
+            )
+        }
+
     def _update_stats(self, elapsed_time: float, success: bool) -> None:
         """Met à jour les statistiques de performance."""
         if success:
@@ -361,16 +503,20 @@ class RetrievalService:
         
         success_rate = (self.retrieval_stats["successful_calls"] / total_calls) * 100
         
+        cache_stats = self.get_cache_stats() if self.config.enable_caching else {"cache_disabled": True}
+
         return {
             "total_calls": total_calls,
             "successful_calls": self.retrieval_stats["successful_calls"],
             "failed_calls": self.retrieval_stats["failed_calls"],
             "success_rate_percent": round(success_rate, 2),
             "average_latency_seconds": round(self.retrieval_stats["average_latency"], 3),
+            "cache_stats": cache_stats,
             "config": {
                 "max_workers": self.config.max_workers,
                 "timeout_seconds": self.config.timeout_seconds,
-                "retry_attempts": self.config.retry_attempts
+                "retry_attempts": self.config.retry_attempts,
+                "caching_enabled": self.config.enable_caching
             }
         }
     
@@ -381,14 +527,32 @@ class RetrievalService:
             "successful_calls": 0,
             "failed_calls": 0,
             "average_latency": 0.0,
-            "parallel_efficiency": 0.0
+            "parallel_efficiency": 0.0,
+            "cache_hits": 0,
+            "cache_misses": 0
         } 
 
     # ---------------------------------------------------------------------
     # Délégation des méthodes avancées de BaseRetriever
     # ---------------------------------------------------------------------
     def search_by_regulation(self, regulation_code: str, query: str, top_k: int = 10, search_type: str = 'hybrid', alpha: float = 0.7):
-        return self.text_retriever.search_by_regulation(regulation_code, query, top_k, search_type, alpha)
+        if self.config.enable_caching:
+            # Créer une clé de cache pour cette méthode spécialisée
+            cache_key = self._generate_cache_key(f"by_reg_{regulation_code}_{query}", False, False, top_k, search_type)
+            cached_result = self._get_from_cache(cache_key)
+            if cached_result is not None:
+                print(f"[CACHE HIT SPECIALIZED] search_by_regulation - Query: '{query[:30]}...' - Reg: {regulation_code}")
+                return cached_result
+            else:
+                print(f"[CACHE MISS SPECIALIZED] search_by_regulation - Query: '{query[:30]}...' - Reg: {regulation_code}")
+
+        result = self.text_retriever.search_by_regulation(regulation_code, query, top_k, search_type, alpha)
+
+        if self.config.enable_caching:
+            self._store_in_cache(cache_key, result)
+            print(f"[CACHE STORE SPECIALIZED] search_by_regulation - Key: {cache_key[:12]}...")
+
+        return result
 
     def get_all_chunks_for_regulation(self, regulation_code: str):
         return self.text_retriever.get_all_chunks_for_regulation(regulation_code)

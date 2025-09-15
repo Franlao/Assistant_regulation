@@ -13,6 +13,7 @@ from assistant_regulation.planning.services import (
     ContextBuilderService,
     RerankerService,
 )
+from assistant_regulation.planning.services.retrieval_service import RetrievalConfig
 from assistant_regulation.planning.services.master_routing_service import MasterRoutingService
 from assistant_regulation.planning.services.intelligent_routing_service import IntelligentRoutingService
 from assistant_regulation.planning.services.knowledge_routing_service import KnowledgeRoutingService
@@ -46,9 +47,23 @@ class ModularOrchestrator:
         knowledge_routing_service: Optional[KnowledgeRoutingService] = None,
     ) -> None:
         
-        # Initialisation des services principaux
+        # Initialisation des services principaux avec configuration optimisée
         rekanker_model = os.getenv("JINA_MODEL")
-        self.retrieval_service = retrieval_service or RetrievalService()
+
+        # Configuration optimisée du RetrievalService
+        if retrieval_service is None:
+            optimized_config = RetrievalConfig(
+                enable_caching=True,
+                cache_ttl_minutes=10,
+                cache_max_size=100,
+                max_workers=8,
+                timeout_seconds=20,
+                retry_attempts=2
+            )
+            self.retrieval_service = RetrievalService(config=optimized_config)
+        else:
+            self.retrieval_service = retrieval_service
+
         self.generation_service = generation_service or GenerationService(llm_provider, model_name)
         
         # Memory a besoin du client pour résumer

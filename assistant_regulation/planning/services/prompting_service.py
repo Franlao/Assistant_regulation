@@ -63,7 +63,25 @@ class PromptingService:
         if context:
             prompt_parts.append("INFORMATIONS RÉGLEMENTAIRES:\n" + context + "\n")
 
-        prompt_parts.append(f"QUESTION: {query}\n\nInstructions de formatage:\n- Utilisez **texte** pour le gras\n- Utilisez *texte* pour l'italique\n- Pour les formules mathématiques, utilisez la syntaxe: $$\\frac{{numérateur}}{{dénominateur}}$$ pour les fractions\n- Exemple: $$\\frac{{150 \\times r}}{{1000 + r}}$$ où r est la variable\n- N'utilisez jamais de dollar simple ($) isolé\n\nRéponse (en français):")
+        prompt_parts.append(f"""QUESTION: {query}
+
+INSTRUCTIONS DE FORMATAGE IMPORTANTES:
+- Utilisez **texte** pour le gras et *texte* pour l'italique
+- Pour les formules mathématiques, suivez STRICTEMENT ces règles:
+  * Utilisez UNIQUEMENT $$\\frac{{numérateur}}{{dénominateur}}$$ pour les fractions
+  * Utilisez \\times pour la multiplication (jamais × ou *)
+  * JAMAIS de dollars multiples: PAS de $$$$, $$$, ou $ isolés
+  * Gardez TOUTE la formule sur UNE SEULE LIGNE
+  * Exemples CORRECTS: $$\\frac{{150 \\times r}}{{1000 + r}}$$, $$a = \\frac{{130 \\times r}}{{1000 + r}}$$
+  * Exemples INCORRECTS: $$\\frac{{150 \times r}}{{1000 + r}}$$$$, a=\\n\\frac{{...}}{{...}}
+
+RÈGLES ABSOLUES pour les mathématiques:
+1. Une formule = une ligne continue
+2. Pas de saut de ligne dans les formules
+3. Doubles dollars seulement: $$formule$$
+4. Variables et chiffres collés aux opérateurs
+
+Réponse (en français):""")
         return "\n\n".join(prompt_parts)
 
     # ------------------------------------------------------------------

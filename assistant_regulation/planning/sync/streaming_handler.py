@@ -30,7 +30,9 @@ class StreamingHandler:
         use_advanced_routing: bool = True,
     ) -> Generator[str, None, None]:
         """Point d'entrée pour le streaming : génère une réponse en streaming."""
-        
+
+        print(f"[STREAMING HANDLER] Advanced routing: {use_advanced_routing}")
+
         if use_advanced_routing:
             yield from self._process_advanced_routing_stream(
                 query, conversation_context, use_images, use_tables, top_k
@@ -49,9 +51,12 @@ class StreamingHandler:
         top_k: int,
     ) -> Generator[str, None, None]:
         """Traitement avec streaming et routage avancé."""
-        
+
+        print(f"[ADVANCED ROUTING] Processing query with advanced routing...")
+
         # Étape 1: Obtenir la décision de routage maître
         routing_decision = self.query_processor.master_routing_service.route_query(query)
+        print(f"[ROUTING DECISION] Strategy: {routing_decision.response_strategy.value}")
         
         # Étape 2: Émettre un chunk d'analyse avec les informations de routage
         analysis_data = {

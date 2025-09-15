@@ -4,6 +4,7 @@ Module de gestion de la génération de chat et du streaming des réponses
 import streamlit as st
 from datetime import datetime
 from assistant_regulation.app.display_manager import display_sources
+from assistant_regulation.app.streamlit_utils import process_latex_formulas, process_latex_formulas_safe
 
 
 def get_current_time():
@@ -46,10 +47,17 @@ def stream_assistant_response(orchestrator, query, settings):
                 mode_badge = get_intelligent_routing_badge(analysis_data, routing_decision)
                 confidence = chunk_content.get('confidence', 0)
                 
+                # Safer HTML rendering with proper CSS specificity and content escaping
+                import html
+                safe_mode_badge = html.escape(str(mode_badge)) if mode_badge else "N/A"
                 analysis_placeholder.markdown(f"""
-                <div style="padding: 10px; border-radius: 5px; background-color: #e8f4f8;">
-                    <strong>Mode utilisé:</strong> {mode_badge} | 
-                    <strong>Confiance:</strong> {confidence:.2f}
+                <div style="padding: 10px !important; 
+                           border-radius: 5px !important; 
+                           background-color: #e8f4f8 !important;
+                           color: #333 !important;
+                           border: 1px solid #bee5eb !important;">
+                    <strong style="color: #333 !important;">Mode utilisé:</strong> {safe_mode_badge} | 
+                    <strong style="color: #333 !important;">Confiance:</strong> {confidence:.2f}
                 </div>
                 """, unsafe_allow_html=True)
             
@@ -102,7 +110,7 @@ def stream_assistant_response(orchestrator, query, settings):
                             </div>
                             <span style="color: #888; font-size: 0.8em;">{get_current_time()}</span>
                         </div>
-                        <div style="color: #333; margin-top: 10px;">{response_text}<span class="cursor">▋</span></div>
+                        <div style="color: #333; margin-top: 10px;">{process_latex_formulas(response_text)}<span class="cursor">▋</span></div>
                     </div>
                     """, unsafe_allow_html=True)
             
@@ -127,7 +135,7 @@ def stream_assistant_response(orchestrator, query, settings):
                             </div>
                             <span style="color: #888; font-size: 0.8em;">{get_current_time()}</span>
                         </div>
-                        <div style="color: #333; margin-top: 10px;">{response_text}</div>
+                        <div style="color: #333; margin-top: 10px;">{process_latex_formulas(response_text)}</div>
                     </div>
                     """, unsafe_allow_html=True)
         
@@ -199,7 +207,7 @@ def display_assistant_response(response_data, query):
             </div>
             <span style="color: #888; font-size: 0.8em;">{timestamp}</span>
         </div>
-        <div style="color: #333; margin-top: 10px;">{content}</div>
+        <div style="color: #333; margin-top: 10px;">{process_latex_formulas(content)}</div>
     </div>
     """, unsafe_allow_html=True)
     

@@ -37,6 +37,17 @@ class GenerationService:
                 return {"type": "mistral", "client": Mistral(api_key=api_key)}
             except ImportError as exc:
                 raise ImportError("Please install `mistralai` to use the Mistral provider") from exc
+        elif self.llm_provider == "openai":
+            try:
+                from openai import OpenAI
+                import os
+
+                api_key = os.getenv("OPENAI_API_KEY")
+                if not api_key:
+                    raise EnvironmentError("OPENAI_API_KEY is not set")
+                return {"type": "openai", "client": OpenAI(api_key=api_key)}
+            except ImportError as exc:
+                raise ImportError("Please install `openai` to use the OpenAI provider") from exc
         else:
             try:
                 import ollama
@@ -63,6 +74,14 @@ class GenerationService:
 
         if self.client["type"] == "mistral":
             response = self.client["client"].chat.complete(
+                model=self.model_name,
+                messages=[{"role": "user", "content": full_prompt}],
+                temperature=temperature,
+                max_tokens=max_tokens,
+            )
+            return response.choices[0].message.content
+        elif self.client["type"] == "openai":
+            response = self.client["client"].chat.completions.create(
                 model=self.model_name,
                 messages=[{"role": "user", "content": full_prompt}],
                 temperature=temperature,
@@ -104,6 +123,17 @@ class GenerationService:
                 content = chunk.data.choices[0].delta.content
                 if content:
                     yield {"type": "text", "content": content}
+        elif self.client["type"] == "openai":
+            response = self.client["client"].chat.completions.create(
+                model=self.model_name,
+                messages=[{"role": "user", "content": full_prompt}],
+                temperature=temperature,
+                max_tokens=max_tokens,
+                stream=True,
+            )
+            for chunk in response:
+                if chunk.choices[0].delta.content:
+                    yield {"type": "text", "content": chunk.choices[0].delta.content}
         else:  # ollama
             response = self.client["client"].chat(
                 model=self.model_name,

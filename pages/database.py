@@ -10,7 +10,7 @@ import pandas as pd
 import json
 from typing import List, Dict, Any
 from utils.session_utils import initialize_session_state
-from components.auth_components import require_admin_access
+from components.modern_auth_integration import require_modern_admin_access
 from utils.task_manager import get_task_manager, async_upload_files, async_folder_ingestion
 from components.task_monitor import render_task_monitor, render_task_notifications, render_task_status_bar
 
@@ -853,7 +853,7 @@ def list_filtered_regulations(min_chunks, max_chunks, has_images, has_tables, co
             
             if filtered:
                 df = pd.DataFrame({"Code Réglementation": filtered})
-                st.dataframe(df, use_container_width=True)
+                st.dataframe(df, width='stretch')
             else:
                 st.info("Aucun résultat")
                 
@@ -899,7 +899,7 @@ def display_regulations_table(data: Dict):
             st.metric("Chunks", f"{stats.get('total_chunks', 0):,}")
         
         # Tableau
-        st.dataframe(df, use_container_width=True)
+        st.dataframe(df, width='stretch')
         
         # Export CSV
         csv = df.to_csv(index=False)
@@ -1047,7 +1047,7 @@ def main():
     """Fonction principale de la page database"""
     
     # Vérification admin obligatoire
-    if not require_admin_access():
+    if not require_modern_admin_access():
         return
     
     # Initialisation

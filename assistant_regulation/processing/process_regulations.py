@@ -467,21 +467,34 @@ def process_regulation_document(folder_path, *, text_only: bool = False):
             logger.error(f"Erreur lors de l'initialisation des retrievers: {e}")
             return False
 
-        # 4. Chargement des chunks depuis les fichiers
+        # 4. Chargement ou génération des chunks
         data_dir = Path("Data")
-        
-        result_text = load_chunks_from_file(data_dir / "chunks_text.pkl")
+
+        # Vérifier si les fichiers chunks existent, sinon les générer
+        text_chunks_file = data_dir / "chunks_text.pkl"
+        image_chunks_file = data_dir / "chunks_image.pkl"
+        table_chunks_file = data_dir / "chunks_table.pkl"
+
+        # Si les chunks n'existent pas, les générer
+        if not text_chunks_file.exists() or (not text_only and (not image_chunks_file.exists() or not table_chunks_file.exists())):
+            logger.info("Fichiers de chunks manquants, génération automatique...")
+            if not generate_chunks_from_scratch(folder_path, str(data_dir), enable_image_description=True, text_only=text_only):
+                logger.error("Échec de la génération des chunks")
+                return False
+
+        # Charger les chunks
+        result_text = load_chunks_from_file(text_chunks_file)
 
         if text_only:
             result_image = []
             result_table = []
         else:
-            result_image = load_chunks_from_file(data_dir / "chunks_image.pkl")
-            result_table = load_chunks_from_file(data_dir / "chunks_table.pkl")
+            result_image = load_chunks_from_file(image_chunks_file)
+            result_table = load_chunks_from_file(table_chunks_file)
 
         # Vérifier qu'au moins un type de chunks est disponible
         if not any([result_text, result_image, result_table]):
-            logger.error("Aucun chunk trouvé dans les fichiers de données")
+            logger.error("Aucun chunk trouvé même après génération")
             return False
 
         # 5. Traitement des chunks

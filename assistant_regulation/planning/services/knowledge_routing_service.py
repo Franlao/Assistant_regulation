@@ -13,6 +13,10 @@ from enum import Enum
 import ollama
 from mistralai import Mistral, UserMessage
 from pydantic import BaseModel, Field, validator
+try:
+    from openai import OpenAI
+except ImportError:
+    OpenAI = None
 
 # Configuration du logging (moins verbeux par défaut)
 logging.basicConfig(level=logging.WARNING)
@@ -53,7 +57,8 @@ class KnowledgeRoutingService:
         self.llm_provider = llm_provider
         self.model_name = model_name
         self.mistral_client = None
-        
+        self.openai_client = None
+
         if llm_provider == "mistral":
             try:
                 import os
@@ -62,6 +67,19 @@ class KnowledgeRoutingService:
                     self.mistral_client = Mistral(api_key=api_key)
             except Exception as e:
                 logger.warning(f"Impossible d'initialiser Mistral: {e}")
+                self.llm_provider = "ollama"
+        elif llm_provider == "openai":
+            try:
+                if OpenAI is None:
+                    raise ImportError("openai package not installed")
+                import os
+                api_key = os.getenv("OPENAI_API_KEY")
+                if api_key:
+                    self.openai_client = OpenAI(api_key=api_key)
+                else:
+                    raise EnvironmentError("OPENAI_API_KEY not set")
+            except Exception as e:
+                logger.warning(f"Impossible d'initialiser OpenAI: {e}")
                 self.llm_provider = "ollama"
     
     def _get_knowledge_routing_prompt(self, query: str) -> str:
@@ -144,6 +162,18 @@ ANALYSE:"""
                 content = response.choices[0].message.content
                 if not content or not content.strip():
                     logger.warning("Réponse Mistral vide")
+                    return self._fallback_knowledge_analysis(prompt)
+                return content
+            elif self.llm_provider == "openai" and self.openai_client:
+                response = self.openai_client.chat.completions.create(
+                    model=self.model_name,
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.1,
+                    max_tokens=500
+                )
+                content = response.choices[0].message.content
+                if not content or not content.strip():
+                    logger.warning("Réponse OpenAI vide")
                     return self._fallback_knowledge_analysis(prompt)
                 return content
             else:
