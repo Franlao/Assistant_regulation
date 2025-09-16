@@ -14,7 +14,7 @@ def render_welcome_section(t):
     
     st.markdown(f"""
     <div class="info-card">
-        <h3 align="center">{t('welcome_title')}</h3>
+        <h3 >{t('welcome_title')}</h3>
         <p>{t('welcome_subtitle')}</p>
         <p>{t('example_questions')}</p>
         <ul>

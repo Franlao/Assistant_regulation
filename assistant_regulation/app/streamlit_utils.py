@@ -552,7 +552,7 @@ def display_regulation_metrics():
         {"code": "R048", "title": "Installation des dispositifs d'éclairage", "version": "05 series"},
     ]
     
-    st.markdown("<h3 style='color: white;'>Réglementations disponibles</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='color: white;', align='center'>Réglementations disponibles</h3>", unsafe_allow_html=True)
     
     cols = st.columns(len(regulations))
     for i, reg in enumerate(regulations):
