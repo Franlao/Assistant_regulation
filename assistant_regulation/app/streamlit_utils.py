@@ -78,6 +78,11 @@ def get_intelligent_routing_badge(analysis: Optional[Dict], routing_decision: Op
         icon = "*"
         label = "Mode Hybride"
         tooltip = "Combinaison de recherche vectorielle et connaissances générales"
+    elif "Meta" in strategy:
+        color_class = "badge-orange"
+        icon = "#"
+        label = "Méta Base"
+        tooltip = "Question sur les métadonnées de la base de données"
     else:
         color_class = "badge-gray"
         icon = "?"

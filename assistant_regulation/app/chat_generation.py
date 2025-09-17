@@ -96,7 +96,9 @@ def stream_assistant_response(orchestrator, query, settings):
                 
                 # Afficher la réponse dans le container avec un style
                 with response_container.container():
-                    if analysis_data and analysis_data.get("needs_rag", False):
+                    if analysis_data and analysis_data.get("query_type") == "meta_query":
+                        mode_badge = '<span class="badge badge-orange"># Méta Base</span>'
+                    elif analysis_data and analysis_data.get("needs_rag", False):
                         mode_badge = '<span class="badge badge-blue">Mode RAG</span>'
                     else:
                         mode_badge = '<span class="badge badge-green">Mode Direct</span>'
@@ -121,7 +123,9 @@ def stream_assistant_response(orchestrator, query, settings):
             elif chunk_type == "done":
                 # Finaliser l'affichage sans le curseur
                 with response_container.container():
-                    if analysis_data and analysis_data.get("needs_rag", False):
+                    if analysis_data and analysis_data.get("query_type") == "meta_query":
+                        mode_badge = '<span class="badge badge-orange"># Méta Base</span>'
+                    elif analysis_data and analysis_data.get("needs_rag", False):
                         mode_badge = '<span class="badge badge-blue">Mode RAG</span>'
                     else:
                         mode_badge = '<span class="badge badge-green">Mode Direct</span>'
@@ -144,7 +148,9 @@ def stream_assistant_response(orchestrator, query, settings):
         
         # Finaliser l'affichage sans le curseur
         with response_container.container():
-            if analysis_data and analysis_data.get("needs_rag", False):
+            if analysis_data and analysis_data.get("query_type") == "meta_query":
+                mode_badge = '<span class="badge badge-orange"># Méta Base</span>'
+            elif analysis_data and analysis_data.get("needs_rag", False):
                 mode_badge = '<span class="badge badge-blue">Mode RAG</span>'
             else:
                 mode_badge = '<span class="badge badge-green">Mode Direct</span>'

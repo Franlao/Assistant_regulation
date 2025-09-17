@@ -194,14 +194,17 @@ def display_sources(sources, t, compact=False):
             if len(sources_by_reg) > 1:
                 st.markdown(f"**{reg_name}**")
             
+            # Créer une clé unique pour cette réglementation
+            regulation_key = hash(reg_name) % 10000
+            
             # Colonnes pour affichage en grille
             if len(reg_sources) > 1:
                 cols = st.columns(min(2, len(reg_sources)))
                 for idx, source in enumerate(reg_sources):
                     with cols[idx % 2]:
-                        _render_source_card_minimal(source, idx + 1)
+                        _render_source_card_minimal(source, idx + 1, f"reg_{regulation_key}")
             else:
-                _render_source_card_minimal(reg_sources[0], 1)
+                _render_source_card_minimal(reg_sources[0], 1, f"reg_{regulation_key}")
             
             if len(sources_by_reg) > 1:
                 st.divider()
@@ -211,7 +214,7 @@ def display_sources(sources, t, compact=False):
             st.caption("💡 Sources complètes disponibles dans la réponse générée")
 
 
-def _render_source_card(source, index):
+def _render_source_card(source, index, regulation_key=None):
     """Rend une carte de source individuelle avec design moderne"""
     import html
     
@@ -346,7 +349,9 @@ def _render_source_card(source, index):
                 # Debug UI supprimé
                 
                 # Bouton pour aperçu PDF
-                if st.button(f"Aperçu", key=f"preview_pdf_{index}", help=f"Aperçu de {document_name}"):
+                # Créer des clés uniques
+                preview_key = f"preview_{regulation_key or 'default'}_{index}_{hash(document_name) % 10000}"
+                if st.button(f"Aperçu", key=preview_key, help=f"Aperçu de {document_name}"):
                     st.write("Bouton Aperçu cliqué!")
                     try:
                         if os.path.exists(file_path):
@@ -368,7 +373,8 @@ def _render_source_card(source, index):
                         st.error(f"Erreur d'aperçu : {str(e)}")
                 
                 # Bouton secondaire pour ouvrir le fichier (fallback)
-                if st.button(f"Ouvrir", key=f"open_file_{index}", help=f"Ouvrir {document_name} dans l'application par défaut"):
+                open_key = f"open_{regulation_key or 'default'}_{index}_{hash(document_name) % 10000}"
+                if st.button(f"Ouvrir", key=open_key, help=f"Ouvrir {document_name} dans l'application par défaut"):
                     try:
                         import subprocess
                         import platform
@@ -390,7 +396,8 @@ def _render_source_card(source, index):
                     except Exception as e:
                         st.error(f"Erreur d'ouverture : {str(e)}")
                         # Bouton de fallback pour copier le lien
-                        if st.button(f"Copier le lien", key=f"copy_link_error_{index}"):
+                        copy_key = f"copy_{regulation_key or 'default'}_{index}_{hash(document_name) % 10000}"
+                        if st.button(f"Copier le lien", key=copy_key):
                             st.code(source_link)
                             st.info("Copiez ce lien dans votre navigateur")
         else:
@@ -441,7 +448,7 @@ def _render_source_card(source, index):
         st.markdown("<div style='margin-bottom: 8px;'></div>", unsafe_allow_html=True)
 
 
-def _render_source_card_minimal(source, index):
+def _render_source_card_minimal(source, index, regulation_key=None):
     """Carte de source minimaliste et efficace - Version moderne 2024"""
     import html
     
@@ -511,7 +518,9 @@ def _render_source_card_minimal(source, index):
         
         with col2:
             # Bouton unique et efficace
-            if file_path and st.button("Voir", key=f"view_{index}", help="Voir le document"):
+            # Créer une clé unique en combinant regulation_key, index et document_name
+            unique_key = f"view_{regulation_key or 'default'}_{index}_{hash(document_name) % 10000}"
+            if file_path and st.button("Voir", key=unique_key, help="Voir le document"):
                 if os.path.exists(file_path):
                     # Formatage sécurisé du numéro de page
                     page_raw = source.get('page', source.get('pages', 1))

@@ -562,7 +562,9 @@ def display_with_document_opener(response_text: str, sources: List[Dict], images
                 for i, source in enumerate(sources):
                     col_idx = i % len(cols)
                     with cols[col_idx]:
-                        if st.button(f"Source {i+1}", key=f"btn_source_{i+1}"):
+                        # Créer une clé unique incluant un hash du contenu de la source
+                        source_hash = hash(str(source.get('content', ''))[:100]) % 10000
+                        if st.button(f"Source {i+1}", key=f"btn_source_{i+1}_{source_hash}"):
                             from .document_opener import get_document_path, open_document_at_page
                             doc_path = get_document_path(source)
                             if doc_path:
@@ -593,7 +595,9 @@ def display_with_document_opener(response_text: str, sources: List[Dict], images
                 for i, image in enumerate(images):
                     col_idx = i % len(cols)
                     with cols[col_idx]:
-                        if st.button(f"Image {i+1}", key=f"btn_image_{i+1}"):
+                        # Créer une clé unique incluant un hash de l'URL de l'image
+                        image_hash = hash(str(image.get('url', '')) + str(image.get('description', ''))) % 10000
+                        if st.button(f"Image {i+1}", key=f"btn_image_{i+1}_{image_hash}"):
                             from .document_opener import get_document_path, open_document_at_page
                             doc_path = get_document_path(image)
                             if doc_path:
@@ -619,7 +623,9 @@ def display_with_document_opener(response_text: str, sources: List[Dict], images
                 for i, table in enumerate(tables):
                     col_idx = i % len(cols)
                     with cols[col_idx]:
-                        if st.button(f"Tableau {i+1}", key=f"btn_table_{i+1}"):
+                        # Créer une clé unique incluant un hash du contenu du tableau
+                        table_hash = hash(str(table.get('content', ''))[:100]) % 10000
+                        if st.button(f"Tableau {i+1}", key=f"btn_table_{i+1}_{table_hash}"):
                             from .document_opener import get_document_path, open_document_at_page
                             doc_path = get_document_path(table)
                             if doc_path:

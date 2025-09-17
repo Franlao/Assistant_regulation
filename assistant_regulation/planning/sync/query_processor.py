@@ -65,7 +65,10 @@ class QueryProcessor:
         routing_decision = self.master_routing_service.route_query(query)
         
         # Étape 2: Exécuter selon la stratégie déterminée
-        if routing_decision.response_strategy.value == "direct_llm":
+        if routing_decision.response_strategy.value == "meta_query":
+            return self._process_meta_query(query, routing_decision)
+            
+        elif routing_decision.response_strategy.value == "direct_llm":
             return self._process_direct_llm(query, conversation_context, routing_decision)
             
         elif routing_decision.response_strategy.value == "vector_search":
@@ -434,4 +437,48 @@ class QueryProcessor:
                 "sources": [],
                 "context_used": "",
                 "conversation_context": ""
+            }
+    
+    def _process_meta_query(self, query: str, routing_decision) -> Dict:
+        """Traite les questions méta sur la base de données."""
+        
+        try:
+            # Récupérer le service méta du master routing service
+            meta_service = self.master_routing_service.meta_service
+            
+            # Exécuter la requête méta
+            meta_result = meta_service.process_query(query)
+            
+            if meta_result and meta_result.get("type") == "meta_answer":
+                # Enregistrer dans la mémoire
+                self.memory_service.add_turn(query, meta_result["answer"])
+                
+                return {
+                    "answer": meta_result["answer"],
+                    "sources": [],
+                    "context_used": f"Analyse méta de la base de données",
+                    "conversation_context": f"Question méta: {meta_result['meta_detection']['query_type']}",
+                    "routing_decision": routing_decision,
+                    "meta_details": meta_result.get("details", {}),
+                    "meta_detection": meta_result.get("meta_detection", {})
+                }
+            else:
+                # Erreur ou question non-méta
+                error_message = meta_result.get("message", "Erreur lors du traitement de la question méta") if meta_result else "Service méta indisponible"
+                
+                return {
+                    "answer": f"Désolé, je n'ai pas pu traiter votre question méta: {error_message}",
+                    "sources": [],
+                    "context_used": "",
+                    "conversation_context": "",
+                    "routing_decision": routing_decision
+                }
+                
+        except Exception as e:
+            return {
+                "answer": f"Erreur lors du traitement de la question méta: {str(e)}",
+                "sources": [],
+                "context_used": "",
+                "conversation_context": "",
+                "routing_decision": routing_decision
             } 

@@ -14,6 +14,7 @@ from enum import Enum
 
 from .knowledge_routing_service import KnowledgeRoutingService, KnowledgeSource
 from .intelligent_routing_service import IntelligentRoutingService
+from .database_meta_service import DatabaseMetaService
 
 # Configuration du logging (moins verbeux par défaut)
 logging.basicConfig(level=logging.WARNING)
@@ -24,6 +25,7 @@ class ResponseStrategy(Enum):
     DIRECT_LLM = "direct_llm"           # Réponse directe du LLM
     VECTOR_SEARCH = "vector_search"     # Recherche vectorielle
     HYBRID_RESPONSE = "hybrid_response" # Combinaison des deux
+    META_QUERY = "meta_query"           # Question méta sur la base de données
 
 @dataclass
 class MasterRoutingDecision:
@@ -46,6 +48,7 @@ class MasterRoutingService:
         # Initialiser les services sous-jacents
         self.knowledge_router = KnowledgeRoutingService(llm_provider, model_name)
         self.intelligent_router = IntelligentRoutingService(llm_provider, model_name)
+        self.meta_service = DatabaseMetaService(llm_provider, model_name)
 
         # Termes automobiles/réglementaires (besoin de base vectorielle)
         self.automotive_keywords = [
@@ -133,6 +136,13 @@ class MasterRoutingService:
         start_time = time.time()
         print(f"[ROUTING] Starting routing for: '{query[:50]}...'")
 
+        # ÉTAPE 0: Vérifier si c'est une question méta (priorité absolue)
+        meta_detection = self.meta_service.detect_meta_query(query)
+        if meta_detection.is_meta and meta_detection.confidence >= 0.6:
+            elapsed = time.time() - start_time
+            print(f"[ROUTING META] Meta query detected in {elapsed:.3f}s: {meta_detection.query_type.value}")
+            return self._create_meta_query_decision(query, meta_detection)
+
         # Routage heuristique rapide (éviter les appels LLM)
         fast_decision = self._try_fast_routing(query)
         if fast_decision:
@@ -163,6 +173,31 @@ class MasterRoutingService:
         elapsed = time.time() - start_time
         print(f"[ROUTING LLM] Decision in {elapsed:.3f}s: {result.response_strategy.value}")
         return result
+    
+    def _create_meta_query_decision(self, query: str, meta_detection) -> MasterRoutingDecision:
+        """Créer une décision pour une question méta"""
+        
+        return MasterRoutingDecision(
+            response_strategy=ResponseStrategy.META_QUERY,
+            knowledge_source="database_meta",
+            search_config={
+                'query_type': meta_detection.query_type.value,
+                'extracted_params': meta_detection.extracted_params,
+                'confidence': meta_detection.confidence,
+                'reasoning': meta_detection.reasoning
+            },
+            confidence_score=meta_detection.confidence,
+            reasoning=f"Question méta détectée: {meta_detection.reasoning}",
+            next_actions={
+                'action': 'execute_meta_query',
+                'method': 'database_tools',
+                'params': {
+                    'query': query,
+                    'query_type': meta_detection.query_type.value,
+                    'extracted_params': meta_detection.extracted_params
+                }
+            }
+        )
     
     def _create_direct_llm_decision(self, query: str, knowledge_decision) -> MasterRoutingDecision:
         """Créer une décision de réponse directe du LLM"""
@@ -254,7 +289,13 @@ class MasterRoutingService:
         explanation += f"ÉTAPE 2 - STRATÉGIE DE RÉPONSE:\n"
         explanation += f"Stratégie sélectionnée: {decision.response_strategy.value}\n\n"
         
-        if decision.response_strategy == ResponseStrategy.DIRECT_LLM:
+        if decision.response_strategy == ResponseStrategy.META_QUERY:
+            explanation += f"ACTION: Question méta sur la base de données\n"
+            explanation += f"Type de question méta: {decision.next_actions['params']['query_type']}\n"
+            explanation += f"Méthode: {decision.next_actions['method']}\n"
+            explanation += f"Paramètres extraits: {decision.next_actions['params']['extracted_params']}\n"
+            
+        elif decision.response_strategy == ResponseStrategy.DIRECT_LLM:
             explanation += f"ACTION: Réponse directe du LLM\n"
             explanation += f"Méthode: {decision.next_actions['method']}\n"
             explanation += f"Type de prompt: {decision.next_actions['prompt_type']}\n"
@@ -292,7 +333,18 @@ class MasterRoutingService:
             'steps': []
         }
         
-        if decision.response_strategy == ResponseStrategy.DIRECT_LLM:
+        if decision.response_strategy == ResponseStrategy.META_QUERY:
+            execution_plan['steps'] = [
+                {
+                    'step': 1,
+                    'action': 'execute_meta_query',
+                    'description': f"Exécuter une question méta de type {decision.next_actions['params']['query_type']}",
+                    'method': decision.next_actions['method'],
+                    'params': decision.next_actions['params']
+                }
+            ]
+            
+        elif decision.response_strategy == ResponseStrategy.DIRECT_LLM:
             execution_plan['steps'] = [
                 {
                     'step': 1,

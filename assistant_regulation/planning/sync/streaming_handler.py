@@ -77,7 +77,11 @@ class StreamingHandler:
         }
         
         # Étape 3: Exécuter selon la stratégie déterminée
-        if routing_decision.response_strategy.value == "direct_llm":
+        if routing_decision.response_strategy.value == "meta_query":
+            # Question méta - traitement direct sans streaming LLM
+            yield from self._process_meta_query_stream(query, routing_decision)
+            
+        elif routing_decision.response_strategy.value == "direct_llm":
             # Réponse directe du LLM en streaming
             yield from self.generation_service.generate_answer_stream(
                 query,
@@ -223,4 +227,66 @@ class StreamingHandler:
         yield {
             "type": "done",
             "content": {}
-        } 
+        }
+    
+    def _process_meta_query_stream(self, query: str, routing_decision) -> Generator[str, None, None]:
+        """Traite les questions méta en streaming (simulation)"""
+        
+        try:
+            # Récupérer le service méta du query processor
+            meta_service = self.query_processor.master_routing_service.meta_service
+            
+            # Utiliser directement la configuration de routage pour éviter de re-détecter
+            search_config = routing_decision.search_config
+            
+            if search_config and search_config.get('query_type'):
+                # Créer une détection simulée à partir de la config de routage
+                from assistant_regulation.planning.services.database_meta_service import MetaDetectionResult, MetaQueryType
+                
+                detection_result = MetaDetectionResult(
+                    is_meta=True,
+                    query_type=MetaQueryType(search_config['query_type']),
+                    confidence=search_config.get('confidence', 0.8),
+                    extracted_params=search_config.get('extracted_params', {}),
+                    reasoning=search_config.get('reasoning', 'Routing decision')
+                )
+                
+                # Exécuter directement la requête méta avec la détection
+                meta_result = meta_service.execute_meta_query(detection_result, query)
+            else:
+                # Fallback: utiliser la méthode normale
+                meta_result = meta_service.process_query(query)
+            
+            if meta_result and meta_result.get("type") == "meta_answer":
+                # Enregistrer dans la mémoire
+                self.memory_service.add_turn(query, meta_result["answer"])
+                
+                # Utiliser le service de génération pour streamer la réponse méta
+                answer = meta_result["answer"]
+                yield from self.generation_service.generate_answer_stream(
+                    query,
+                    context=answer,  # Utiliser la réponse méta comme contexte
+                    conversation_context="",
+                )
+                
+                # Émettre les détails méta optionnels
+                if meta_result.get("meta_details"):
+                    yield {
+                        "type": "meta_details",
+                        "content": meta_result["meta_details"]
+                    }
+                    
+            else:
+                # Erreur ou question non-méta - émettre un message d'erreur
+                error_message = meta_result.get("message", "Erreur lors du traitement de la question méta") if meta_result else "Service méta indisponible"
+                
+                yield {
+                    "type": "text", 
+                    "content": f"Désolé, je n'ai pas pu traiter votre question méta: {error_message}"
+                }
+                
+        except Exception as e:
+            yield {
+                "type": "text",
+                "content": f"Erreur lors du traitement de la question méta: {str(e)}"
+            } 
