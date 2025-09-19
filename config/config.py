@@ -94,10 +94,10 @@ class UIConfig:
 @dataclass
 class DatabaseConfig:
     """Configuration des bases de données"""
-    # Chemins des bases vectorielles
-    text_db_path: str = "data/vectorstores/text_chunks"
-    image_db_path: str = "data/vectorstores/image_chunks"
-    table_db_path: str = "data/vectorstores/table_chunks"
+    # Chemins des bases vectorielles - adaptés pour Railway
+    text_db_path: str = "DB/vectorstores/text_chunks"
+    image_db_path: str = "DB/vectorstores/image_chunks"
+    table_db_path: str = "DB/vectorstores/table_chunks"
     
     # Paramètres de recherche
     similarity_threshold: float = 0.7

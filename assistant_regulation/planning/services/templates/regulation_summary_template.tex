@@ -1,0 +1,169 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{tocloft}
+\usepackage{lastpage}
+\usepackage{datetime}
+
+% Configuration des couleurs
+\definecolor{regblue}{RGB}{10,110,189}
+\definecolor{reggray}{RGB}{64,64,64}
+\definecolor{lightgray}{RGB}{240,240,240}
+
+% Configuration des hyperliens
+\hypersetup{
+    colorlinks=true,
+    linkcolor=regblue,
+    filecolor=regblue,
+    urlcolor=regblue,
+    citecolor=regblue
+}
+
+% Configuration des titres de sections
+\titleformat{\section}
+{\normalfont\Large\bfseries\color{regblue}}{\thesection}{1em}{}
+\titleformat{\subsection}
+{\normalfont\large\bfseries\color{reggray}}{\thesubsection}{1em}{}
+\titleformat{\subsubsection}
+{\normalfont\normalsize\bfseries\color{reggray}}{\thesubsubsection}{1em}{}
+
+% Configuration des en-têtes et pieds de page
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\textcolor{regblue}{\textbf{Résumé Réglementaire - {{regulation_code}}}}}
+\fancyhead[R]{\textcolor{reggray}{\small {{generated_date}}}}
+\fancyfoot[L]{\textcolor{reggray}{\small {{llm_provider}} - {{processing_time}}s}}
+\fancyfoot[C]{\textcolor{regblue}{\textbf{\thepage\ / \pageref{LastPage}}}}
+\fancyfoot[R]{\textcolor{reggray}{\small {{original_pages}} pages → {{summary_words}} mots}}
+\renewcommand{\headrulewidth}{1pt}
+\renewcommand{\footrulewidth}{0.5pt}
+\renewcommand{\headrule}{\hbox to\headwidth{\color{regblue}\leaders\hrule height \headrulewidth\hfill}}
+\renewcommand{\footrule}{\hbox to\headwidth{\color{reggray}\leaders\hrule height \footrulewidth\hfill}}
+
+% Configuration des listes
+\setlist[enumerate]{leftmargin=1.5cm}
+\setlist[itemize]{leftmargin=1.5cm}
+
+% Configuration de la table des matières
+\renewcommand{\cftsecleader}{\cftdotfill{\cftdotsep}}
+
+% Commandes personnalisées
+\newcommand{\regsection}[1]{\section{\textcolor{regblue}{#1}}}
+\newcommand{\regsubsection}[1]{\subsection{\textcolor{reggray}{#1}}}
+\newcommand{\highlight}[1]{\textbf{\textcolor{regblue}{#1}}}
+\newcommand{\technical}[1]{\texttt{\textcolor{reggray}{#1}}}
+
+% Environnement pour les tableaux réglementaires
+\newenvironment{regtable}
+{\begin{table}[h!]\centering\color{reggray}\small}
+{\end{table}}
+
+% Environnement pour les exigences importantes
+\newenvironment{requirement}
+{\begin{quote}\color{regblue}\bfseries}
+{\end{quote}}
+
+% Configuration des puces personnalisées
+\renewcommand{\labelitemi}{\textcolor{regblue}{$\bullet$}}
+\renewcommand{\labelitemii}{\textcolor{reggray}{$\circ$}}
+
+\begin{document}
+
+% Page de titre
+\begin{titlepage}
+    \centering
+    
+    \vspace{2cm}
+    
+    % Logo ou en-tête institutionnel (à adapter)
+    {\color{regblue}\rule{\linewidth}{2pt}}
+    \vspace{0.5cm}
+    
+    {\Huge\bfseries\color{regblue} RÉSUMÉ PROFESSIONNEL\\[0.5cm]}
+    {\LARGE\color{reggray} Réglementation UN/ECE {{regulation_code}}\\[1cm]}
+    
+    {\color{regblue}\rule{\linewidth}{1pt}}
+    \vspace{1cm}
+    
+    % Informations du document
+    \begin{tabular}{ll}
+        \textbf{Document original :} & {{original_pages}} pages \\[0.3cm]
+        \textbf{Résumé généré :} & {{summary_words}} mots ({{sections_count}} sections) \\[0.3cm]
+        \textbf{Ratio de compression :} & {{compression_ratio}} \\[0.3cm]
+        \textbf{Date de génération :} & {{generated_date}} \\[0.3cm]
+        \textbf{Modèle utilisé :} & {{llm_provider}} ({{model_name}}) \\[0.3cm]
+        \textbf{Temps de traitement :} & {{processing_time}} secondes \\[0.3cm]
+    \end{tabular}
+    
+    \vspace{2cm}
+    
+    {\large\color{reggray} 
+    Ce document est un résumé technique professionnel\\
+    généré automatiquement par intelligence artificielle.\\[0.5cm]
+    Il préserve toutes les informations critiques\\
+    et respecte les standards réglementaires automobiles.
+    }
+    
+    \vfill
+    
+    {\color{regblue}\rule{\linewidth}{2pt}}
+    
+\end{titlepage}
+
+% Table des matières
+\tableofcontents
+\newpage
+
+% Contenu principal
+{{main_content}}
+
+\newpage
+
+% Annexes techniques
+\appendix
+\section{Métadonnées Techniques}
+
+\subsection{Informations de Traitement}
+\begin{itemize}
+    \item \textbf{Chunks analysés :} {{total_chunks}}
+    \item \textbf{Pages couvertes :} {{pages_covered}} pages
+    \item \textbf{Sections traitées :} {{sections_count}}
+    \item \textbf{Temps de traitement :} {{processing_time}} secondes
+    \item \textbf{Modèle LLM :} {{llm_provider}} ({{model_name}})
+    \item \textbf{Méthode :} Map-Reduce hiérarchique avec {{max_workers}} workers
+\end{itemize}
+
+\subsection{Répartition par Sections}
+\begin{longtable}{|c|c|c|c|c|}
+\hline
+\textbf{Section} & \textbf{Pages} & \textbf{Chunks} & \textbf{Mots générés} & \textbf{Temps (s)} \\
+\hline
+{{sections_details}}
+\hline
+\end{longtable}
+
+\subsection{Informations Réglementaires}
+\begin{itemize}
+    \item \textbf{Réglementation :} UN/ECE {{regulation_code}}
+    \item \textbf{Domaine :} Transport de passagers (véhicules M2/M3)
+    \item \textbf{Autorités compétentes :} Organismes nationaux d'homologation
+    \item \textbf{Mise à jour :} Consulter le site officiel UNECE pour les dernières versions
+\end{itemize}
+
+\subsection{Avertissements}
+\begin{quote}
+\textcolor{red}{\textbf{Important :}} Ce résumé est généré automatiquement et ne remplace pas la consultation du texte réglementaire officiel complet. Les fabricants et organismes de certification doivent toujours se référer aux documents officiels publiés par l'UNECE pour toute application réglementaire.
+\end{quote}
+
+\end{document}

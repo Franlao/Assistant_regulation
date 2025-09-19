@@ -5,7 +5,7 @@
     "buildCommand": "bash railway-build.sh"
   },
   "deploy": {
-    "startCommand": "streamlit run app.py --server.port=$PORT --server.address=0.0.0.0 --server.headless=true --server.enableCORS=false --server.enableXsrfProtection=false",
+    "startCommand": "python scripts/init_railway_db.py && streamlit run app.py --server.port=$PORT --server.address=0.0.0.0 --server.headless=true --server.enableCORS=false --server.enableXsrfProtection=false",
     "healthcheckPath": "/_stcore/health",
     "healthcheckTimeout": 100,
     "restartPolicyType": "ON_FAILURE",

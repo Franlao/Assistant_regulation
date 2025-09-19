@@ -90,9 +90,9 @@
     "max_images_per_response": 10
   },
   "database": {
-    "text_db_path": "data/vectorstores/text_chunks",
-    "image_db_path": "data/vectorstores/image_chunks",
-    "table_db_path": "data/vectorstores/table_chunks",
+    "text_db_path": "DB/vectorstores/text_chunks",
+    "image_db_path": "DB/vectorstores/image_chunks",
+    "table_db_path": "DB/vectorstores/table_chunks",
     "similarity_threshold": 0.7,
     "max_chunk_size": 1000,
     "chunk_overlap": 200
