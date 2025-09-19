@@ -1,0 +1,36 @@
+{
+  "$schema": "https://railway.app/railway.schema.json",
+  "build": {
+    "builder": "NIXPACKS",
+    "buildCommand": "./railway-build.sh"
+  },
+  "deploy": {
+    "startCommand": "streamlit run app.py --server.port=$PORT --server.address=0.0.0.0 --server.headless=true --server.enableCORS=false --server.enableXsrfProtection=false",
+    "healthcheckPath": "/_stcore/health",
+    "healthcheckTimeout": 100,
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 10
+  },
+  "volumes": [
+    {
+      "name": "chromadb-data",
+      "mountPath": "/app/DB"
+    },
+    {
+      "name": "logs-data",
+      "mountPath": "/app/logs"
+    },
+    {
+      "name": "cache-data",
+      "mountPath": "/app/joblib_cache"
+    },
+    {
+      "name": "memory-data",
+      "mountPath": "/app/.conversation_memory"
+    },
+    {
+      "name": "temp-data",
+      "mountPath": "/app/temp"
+    }
+  ]
+}
