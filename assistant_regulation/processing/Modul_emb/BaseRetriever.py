@@ -19,9 +19,22 @@ try:
 except ImportError:
     MISTRAL_EMBEDDING_AVAILABLE = False
 
-# Définir le chemin de la base de données de manière portable
+# Définir le chemin de la base de données via la configuration centralisée
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-CHROMA_DB_PATH = os.path.join(PROJECT_ROOT,"DB", "chroma_db")
+
+def get_chroma_db_path():
+    """Récupère le chemin ChromaDB depuis la configuration centralisée"""
+    try:
+        import sys
+        sys.path.append(PROJECT_ROOT)
+        from config.config import get_config
+        return os.path.join(PROJECT_ROOT, get_config().database.chroma_db_path)
+    except ImportError:
+        # Fallback si la config n'est pas disponible
+        return os.path.join(PROJECT_ROOT, "DB", "chroma_db")
+
+# Chemin ChromaDB depuis la configuration centralisée
+CHROMA_DB_PATH = get_chroma_db_path()
 
 def batch_processing(collection, ids, documents, embeddings, metadatas, batch_size=5000):
     """Stocke les données par lots pour éviter l'erreur de dépassement de batch"""

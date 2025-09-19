@@ -32,9 +32,6 @@ fi
 
 # Créer les répertoires de base de données persistante
 echo "Creating persistent database directories..."
-mkdir -p /app/DB/vectorstores/text_chunks
-mkdir -p /app/DB/vectorstores/image_chunks
-mkdir -p /app/DB/vectorstores/table_chunks
 mkdir -p /app/DB/chroma_db
 mkdir -p /app/logs
 mkdir -p /app/joblib_cache

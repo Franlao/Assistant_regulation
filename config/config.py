@@ -94,11 +94,14 @@ class UIConfig:
 @dataclass
 class DatabaseConfig:
     """Configuration des bases de données"""
-    # Chemins des bases vectorielles - adaptés pour Railway
-    text_db_path: str = "DB/vectorstores/text_chunks"
-    image_db_path: str = "DB/vectorstores/image_chunks"
-    table_db_path: str = "DB/vectorstores/table_chunks"
-    
+    # ChromaDB unifié - Architecture collections (compatible Railway)
+    chroma_db_path: str = "DB/chroma_db"
+
+    # Noms des collections ChromaDB
+    text_collection: str = "simple_text"
+    image_collection: str = "pdf_images"
+    table_collection: str = "pdf_tables"
+
     # Paramètres de recherche
     similarity_threshold: float = 0.7
     max_chunk_size: int = 1000

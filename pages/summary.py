@@ -72,7 +72,11 @@ def get_available_regulations():
 def load_regulation_chunks(regulation_code: str) -> List[Dict]:
     """Charge les chunks d'une réglementation spécifique depuis ChromaDB"""
     try:
-        client = chromadb.PersistentClient(path="./DB/chroma_db")
+        # Utiliser la configuration centralisée pour le chemin ChromaDB
+        from config.config import get_config
+        config = get_config()
+        chroma_path = config.database.chroma_db_path
+        client = chromadb.PersistentClient(path=chroma_path)
         collection = client.get_collection("simple_text")
         
         # Filtrer par regulation_code dans les métadonnées

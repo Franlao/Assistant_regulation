@@ -98,10 +98,11 @@ class DatabaseCleanupManager:
         
         # Chemins potentiels de la base de données
         potential_paths = [
-            "./chroma_db/",
-            "./chroma_collections/",
-            os.path.expanduser("~/chroma_db/"),
-            "./Data/chroma_db/"
+            "DB/chroma_db/",
+            "./chroma_db/",  # Legacy
+            "./chroma_collections/",  # Legacy
+            os.path.expanduser("~/chroma_db/"),  # Legacy
+            "./Data/chroma_db/"  # Legacy
         ]
         
         for path in potential_paths:

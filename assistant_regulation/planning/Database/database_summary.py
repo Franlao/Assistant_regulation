@@ -268,7 +268,7 @@ class DatabaseSummaryManager:
             # Informations de stockage (approximatives)
             stats["storage_info"] = {
                 "estimated_size_mb": stats["total_chunks"] * 0.1,  # Estimation grossière
-                "database_path": "./chroma_db/"
+                "database_path": "DB/chroma_db/"
             }
         
         except Exception as e:
