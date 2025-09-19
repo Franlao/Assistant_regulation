@@ -52,11 +52,33 @@ def check_database_status():
         from config.config import get_config
         config = get_config()
         chroma_path = config.database.chroma_db_path
+
+        # Debug paths
+        abs_chroma_path = os.path.abspath(chroma_path)
+        print(f"🔍 DEBUG: Chemin ChromaDB relatif: {chroma_path}")
+        print(f"🔍 DEBUG: Chemin ChromaDB absolu: {abs_chroma_path}")
+        print(f"🔍 DEBUG: Working directory: {os.getcwd()}")
+        print(f"🔍 DEBUG: Contenu du répertoire DB: {os.listdir('DB') if os.path.exists('DB') else 'N/A'}")
+
         client = chromadb.PersistentClient(path=chroma_path)
         collections = client.list_collections()
 
         if not collections:
             print("Aucune collection ChromaDB trouvée - base de données vide")
+
+            # Test avec chemin absolu au cas où
+            print("🔍 DEBUG: Test avec chemin absolu...")
+            try:
+                abs_client = chromadb.PersistentClient(path=abs_chroma_path)
+                abs_collections = abs_client.list_collections()
+                if abs_collections:
+                    print(f"✅ Collections trouvées avec chemin absolu: {len(abs_collections)}")
+                    return True
+                else:
+                    print("❌ Aucune collection même avec chemin absolu")
+            except Exception as e:
+                print(f"❌ Erreur avec chemin absolu: {e}")
+
             return False
         else:
             print(f"{len(collections)} collection(s) ChromaDB trouvée(s):")
