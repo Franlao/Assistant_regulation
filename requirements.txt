@@ -9,6 +9,7 @@ python-dotenv==1.1.1
 # === LLM Providers ===
 mistralai==1.9.3
 ollama==0.5.1
+openai==1.57.4
 
 # === Essential utilities ===
 requests==2.32.4
