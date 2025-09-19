@@ -53,7 +53,7 @@ class ConversationMemoryConfig:
 @dataclass
 class RAGConfig:
     """Configuration du système RAG"""
-    enable_verification: bool = True
+    enable_verification: bool = False
     use_images: bool = True
     use_tables: bool = True
     default_top_k: int = 10
