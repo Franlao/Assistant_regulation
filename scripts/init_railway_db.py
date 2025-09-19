@@ -56,7 +56,7 @@ def check_database_status():
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    print("Initialisation de la base de données Railway...")
+    print("🚀 Initialisation de la base de données Railway - Version TEST PERSISTANCE 19/09/2025...")
 
     # Créer les répertoires
     ensure_directories()
