@@ -71,7 +71,8 @@ def check_database_status():
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    print("🚀 Initialisation de la base de données Railway - Version UNIFIED CONFIG 19/09/2025...")
+    print("🚀 Initialisation de la base de données Railway - Version PERSISTENCE TEST 19/09/2025...")
+    print("🔍 Test de persistance en cours - vérification des données existantes...")
 
     # Créer les répertoires
     ensure_directories()
@@ -80,7 +81,8 @@ if __name__ == "__main__":
     db_healthy = check_database_status()
 
     if not db_healthy:
-        print("⚠️  Base de données vide - il faudra la repeupler")
+        print("❌ PERSISTENCE TEST: Base de données vide après redéploiement")
         print("💡 Astuce: Copiez vos fichiers PDF dans le dossier Data/ et relancez le traitement")
     else:
-        print("✅ Base de données prête - persistance OK")
+        print("✅ PERSISTENCE TEST: Données trouvées - persistance fonctionnelle !")
+        print("🎉 Les volumes Railway fonctionnent correctement avec la config unifiée")
