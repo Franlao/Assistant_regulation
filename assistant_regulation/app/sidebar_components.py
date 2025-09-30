@@ -10,135 +10,54 @@ from translations import t
 
 
 def render_language_selector(config, t, current_language):
-    """Affiche le sélecteur de langue ultrathink avec drapeaux uniquement"""
+    """Affiche le sélecteur de langue ultrathink avec drapeaux emojis uniquement"""
     from translations import get_language, set_language
-    import time
 
-    # URLs des icônes Icons8
-    france_icon = "https://img.icons8.com/?size=20&id=3muzEmi4dpD5&format=png"
-    gb_icon = "https://img.icons8.com/?size=20&id=ShNNs7i8tXQF&format=png&color=000000"
+    # Drapeaux emojis avec 🇺🇸 pour l'anglais
+    language_flags = {
+        'fr': '🇫🇷',
+        'en': '🇺🇸'
+    }
 
     current_lang = get_language()
 
-    # Selectbox-like avec radio buttons et icônes
-    current_flag = france_icon if current_lang == 'fr' else gb_icon
-
-    # Container qui ressemble à un selectbox
-    st.markdown(f"""
-    <div style="display: flex; align-items: center; justify-content: center;
-                background: transparent; padding: 2px; margin: -10px 0;
-                cursor: pointer; border-radius: 4px;">
-        <img src="{current_flag}" style="width: 20px; height: 20px; margin-right: 5px;">
-        <span style="font-size: 0.9em; color: #888;">{current_lang.upper()}</span>
-    </div>
-    """, unsafe_allow_html=True)
-
-    # Radio buttons cachés qui contrôlent la sélection
-    new_language = st.radio(
-        "Language",
-        options=['fr', 'en'],
-        index=['fr', 'en'].index(current_lang),
-        key="language_radio",
-        label_visibility="collapsed",
-        horizontal=True
-    )
-
-    # CSS pour personnaliser les radio buttons - les rendre transparents
+    # CSS pour style ultrathink footer
     st.markdown("""
     <style>
-    /* Cacher complètement les radio buttons */
-    div[data-testid="stRadio"] {
-        display: none !important;
+    .stSelectbox[data-baseweb="select"] {
+        margin-top: -10px;
+        margin-bottom: -10px;
     }
-
-    /* Alternative: créer des boutons cliquables avec les icônes */
-    .lang-btn {
-        background: transparent !important;
-        border: none !important;
-        padding: 4px !important;
-        cursor: pointer !important;
-        border-radius: 4px !important;
-        transition: all 0.2s ease !important;
-    }
-
-    .lang-btn:hover {
-        background: rgba(255,255,255,0.1) !important;
-        transform: scale(1.05) !important;
-    }
-
-    .lang-btn.active {
-        background: rgba(255,255,255,0.2) !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
-    # Boutons cliquables avec icônes (plus simple et fiable)
-    col1, col2 = st.columns(2)
-
-    with col1:
-        if st.button("", key="fr_btn", help="Français"):
-            if current_lang != 'fr':
-                new_language = 'fr'
-
-    with col2:
-        if st.button("", key="en_btn", help="English"):
-            if current_lang != 'en':
-                new_language = 'en'
-
-    # Afficher les icônes sur les boutons
-    st.markdown(f"""
-    <style>
-    /* Bouton FR */
-    button[data-testid="baseButton-secondary"]:has-text(""):first-of-type::before {{
-        content: "";
-        background-image: url('{france_icon}');
-        background-size: 16px 16px;
-        background-repeat: no-repeat;
-        background-position: center;
-        display: inline-block;
-        width: 16px;
-        height: 16px;
-    }}
-
-    /* Bouton EN */
-    button[data-testid="baseButton-secondary"]:has-text(""):last-of-type::before {{
-        content: "";
-        background-image: url('{gb_icon}');
-        background-size: 16px 16px;
-        background-repeat: no-repeat;
-        background-position: center;
-        display: inline-block;
-        width: 16px;
-        height: 16px;
-    }}
-
-    /* Style des boutons */
-    div[data-testid="column"] button {{
+    .stSelectbox > div > div {
         background: transparent !important;
         border: none !important;
         box-shadow: none !important;
-        padding: 4px !important;
-        min-width: 24px !important;
-        height: 24px !important;
-    }}
-
-    div[data-testid="column"] button:hover {{
-        background: rgba(255,255,255,0.1) !important;
-        transform: scale(1.1) !important;
-    }}
+        min-height: 2rem !important;
+    }
+    .stSelectbox > div > div > div {
+        background: transparent !important;
+        border: none !important;
+        font-size: 1.4em !important;
+        padding: 0 !important;
+        text-align: center !important;
+    }
+    .stSelectbox [data-baseweb="select"] {
+        border: none !important;
+        background: transparent !important;
+    }
     </style>
-
-    <script>
-    // Ajouter les icônes directement aux boutons
-    setTimeout(() => {{
-        const buttons = document.querySelectorAll('button[data-testid="baseButton-secondary"]');
-        if (buttons.length >= 2) {{
-            buttons[0].innerHTML = '<img src="{france_icon}" style="width:16px;height:16px;">';
-            buttons[1].innerHTML = '<img src="{gb_icon}" style="width:16px;height:16px;">';
-        }}
-    }}, 100);
-    </script>
     """, unsafe_allow_html=True)
+
+    # Selectbox ultraminimaliste avec uniquement les drapeaux
+    new_language = st.selectbox(
+        label="Language",  # Label pour accessibilité
+        options=list(language_flags.keys()),
+        format_func=lambda x: language_flags[x],  # Afficher uniquement le drapeau
+        index=list(language_flags.keys()).index(current_lang),
+        key="footer_language_selector",  # Clé fixe pour détecter les changements
+        help="Changer la langue / Change language",
+        label_visibility="collapsed"  # Cacher le label
+    )
 
     # Si la langue change, mettre à jour silencieusement
     if new_language != current_lang:
