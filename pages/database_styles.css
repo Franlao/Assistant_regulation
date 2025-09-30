@@ -220,15 +220,15 @@
 
 /* Selectboxes */
 .stSelectbox > div > div {
-    border: 1px solid #d1d5db !important;
-    border-radius: 6px !important;
-    background: white !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
     transition: all 0.15s ease !important;
 }
 
 .stSelectbox > div > div:focus-within {
-    border-color: #6b7280 !important;
-    box-shadow: 0 0 0 3px rgba(107, 114, 128, 0.1) !important;
+    border: none !important;
+    box-shadow: none !important;
 }
 
 /* Animation d'entrée subtile */

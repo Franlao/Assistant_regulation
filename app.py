@@ -16,7 +16,7 @@ from pages.database import (
 from pages.summary import main as render_summary_page
 from utils.session_utils import initialize_session_state
 from components.modern_auth_integration import require_modern_authentication, require_modern_admin_access, render_modern_sidebar_user_info, render_dedicated_login_page
-from translations import get_text
+from translations import get_text, t, _, init_i18n, add_language_selector
 from config import get_config
 from dotenv import load_dotenv
 import logging
@@ -60,10 +60,15 @@ st.set_page_config(
 if 'language' not in st.session_state:
     st.session_state.language = config.ui.default_language
 
-# Fonction pour traduire du texte
-def t(key: str, *args):
+# Initialiser le système d'internationalisation moderne
+i18n = init_i18n()
+
+# Fonction pour traduire du texte (modernisée)
+def t(key: str, *args, **kwargs):
     """Obtenir le texte traduit selon la langue actuelle"""
-    return get_text(key, st.session_state.language, *args)
+    # Utiliser le nouveau système moderne
+    from translations import t as modern_t
+    return modern_t(key, *args, **kwargs)
 
 # Le fond d'écran est appliqué uniquement pour la page Chat (voir plus bas)
 
@@ -172,15 +177,15 @@ def apply_page_specific_styles():
         
         /* Selectbox moderne */
         .stSelectbox > div > div {
-            border: 1px solid #cbd5e1 !important;
-            border-radius: 8px !important;
-            background: white !important;
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
             transition: all 0.15s ease !important;
         }
-        
+
         .stSelectbox > div > div:focus-within {
-            border-color: #475569 !important;
-            box-shadow: 0 0 0 3px hsl(215 20% 65% / 0.15) !important;
+            border: none !important;
+            box-shadow: none !important;
         }
         
         /* Cards épurées avec ombres modernes */
@@ -273,8 +278,27 @@ def apply_page_specific_styles():
 st.markdown("""
 <script type="text/x-mathjax-config">
 MathJax.Hub.Config({
-  tex2jax: {inlineMath: [['$','$'], ['\\\\(','\\\\)']]}
+  tex2jax: {inlineMath: [['$','$'], ['\\\\(','\\\\)']],
+           displayMath: [['$$','$$']],
+           processEscapes: true},
+  "HTML-CSS": {availableFonts: ["TeX"]},
+  displayAlign: "center",
+  displayIndent: "0em"
 });
+
+// Function to force MathJax to reprocess content
+window.rerenderMathJax = function() {
+  if (typeof MathJax !== 'undefined') {
+    MathJax.Hub.Queue(["Typeset", MathJax.Hub]);
+  }
+};
+
+// Auto-reprocess MathJax every 2 seconds to catch new content
+setInterval(function() {
+  if (typeof MathJax !== 'undefined') {
+    MathJax.Hub.Queue(["Typeset", MathJax.Hub]);
+  }
+}, 2000);
 </script>
 <script type="text/javascript"
   src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML">
@@ -291,20 +315,20 @@ def render_configuration_page(t, config):
         return
     
     # Titre centré exactement comme Summary
-    st.markdown("""
+    st.markdown(f"""
     <div style="text-align: center; padding: 2rem 0;">
-        <h1 style="color: #343a40; font-weight: 400; font-size: 2rem; margin: 0;">Configuration</h1>
+        <h1 style="color: #343a40; font-weight: 400; font-size: 2rem; margin: 0;">{t('settings_title')}</h1>
         <p style="color: #6c757d; font-size: 1rem; margin: 0.5rem 0 0 0;">Configurez tous les paramètres de l'Assistant Réglementaire</p>
     </div>
     """, unsafe_allow_html=True)
     
     # Navigation par onglets
     tab1, tab2, tab3, tab4, tab5 = st.tabs([
-        "LLM", 
-        "RAG", 
-        "Mémoire", 
-        "Interface", 
-        "Système"
+        "LLM",
+        "RAG",
+        t('memory_configuration'),
+        t('ui_configuration'),
+        t('system_configuration')
     ])
     
     with tab1:
@@ -325,7 +349,7 @@ def render_configuration_page(t, config):
     # Footer avec le même style
     st.markdown("<br>", unsafe_allow_html=True)
     st.divider()
-    st.caption("Les modifications sont appliquées automatiquement. Utilisez 'Sauvegarder Config' pour les rendre permanentes.")
+    st.caption(t('config_auto_apply'))
 
 def render_database_page(t, config):
     """Rendu de la page database intégrée"""
@@ -334,10 +358,10 @@ def render_database_page(t, config):
         return
     
     # Titre centré exactement comme Summary
-    st.markdown("""
+    st.markdown(f"""
     <div style="text-align: center; padding: 2rem 0;">
-        <h1 style="color: #343a40; font-weight: 400; font-size: 2rem; margin: 0;">Gestionnaire de Base de Données</h1>
-        <p style="color: #6c757d; font-size: 1rem; margin: 0.5rem 0 0 0;">Interface d'administration ChromaDB:Accès administrateur requis</p>
+        <h1 style="color: #343a40; font-weight: 400; font-size: 2rem; margin: 0;">{t('database_manager')}</h1>
+        <p style="color: #6c757d; font-size: 1rem; margin: 0.5rem 0 0 0;">{t('database_admin_required')}</p>
     </div>
     """, unsafe_allow_html=True)
     # État de la base
@@ -347,11 +371,11 @@ def render_database_page(t, config):
     
     # Navigation par onglets
     tab1, tab2, tab3, tab4, tab5 = st.tabs([
-        "Ingestion",
-        "Résumé", 
-        "Recherche",
-        "Liste",
-        "Nettoyage"
+        t('ingestion'),
+        t('summary'),
+        t('search'),
+        t('list'),
+        t('cleanup')
     ])
     
     with tab1:
@@ -372,7 +396,7 @@ def render_database_page(t, config):
     # Footer avec le même style
     st.markdown("<br>", unsafe_allow_html=True)
     st.divider()
-    st.caption("Interface d'administration - Utilisez avec précaution")
+    st.caption(t('database_admin_warning'))
 
 # Barre latérale pour la configuration
 with st.sidebar:
