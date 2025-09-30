@@ -6,17 +6,147 @@ from assistant_regulation.planning.Orchestrator.modular_orchestrator import Modu
 from config import save_config, reload_config
 from assistant_regulation.app.streamlit_utils import export_conversation_to_pdf
 from components.modern_auth_integration import render_modern_sidebar_user_info
+from translations import t
 
 
 def render_language_selector(config, t, current_language):
-    """Affiche le sélecteur de langue"""
-    selected_language = st.selectbox(
-        t("language"),
-        options=config.ui.available_languages,
-        index=config.ui.available_languages.index(current_language),
-        format_func=lambda x: t("french") if x == "fr" else t("english")
+    """Affiche le sélecteur de langue ultrathink avec drapeaux uniquement"""
+    from translations import get_language, set_language
+    import time
+
+    # URLs des icônes Icons8
+    france_icon = "https://img.icons8.com/?size=20&id=3muzEmi4dpD5&format=png"
+    gb_icon = "https://img.icons8.com/?size=20&id=ShNNs7i8tXQF&format=png&color=000000"
+
+    current_lang = get_language()
+
+    # Selectbox-like avec radio buttons et icônes
+    current_flag = france_icon if current_lang == 'fr' else gb_icon
+
+    # Container qui ressemble à un selectbox
+    st.markdown(f"""
+    <div style="display: flex; align-items: center; justify-content: center;
+                background: transparent; padding: 2px; margin: -10px 0;
+                cursor: pointer; border-radius: 4px;">
+        <img src="{current_flag}" style="width: 20px; height: 20px; margin-right: 5px;">
+        <span style="font-size: 0.9em; color: #888;">{current_lang.upper()}</span>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Radio buttons cachés qui contrôlent la sélection
+    new_language = st.radio(
+        "Language",
+        options=['fr', 'en'],
+        index=['fr', 'en'].index(current_lang),
+        key="language_radio",
+        label_visibility="collapsed",
+        horizontal=True
     )
-    return selected_language
+
+    # CSS pour personnaliser les radio buttons - les rendre transparents
+    st.markdown("""
+    <style>
+    /* Cacher complètement les radio buttons */
+    div[data-testid="stRadio"] {
+        display: none !important;
+    }
+
+    /* Alternative: créer des boutons cliquables avec les icônes */
+    .lang-btn {
+        background: transparent !important;
+        border: none !important;
+        padding: 4px !important;
+        cursor: pointer !important;
+        border-radius: 4px !important;
+        transition: all 0.2s ease !important;
+    }
+
+    .lang-btn:hover {
+        background: rgba(255,255,255,0.1) !important;
+        transform: scale(1.05) !important;
+    }
+
+    .lang-btn.active {
+        background: rgba(255,255,255,0.2) !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+    # Boutons cliquables avec icônes (plus simple et fiable)
+    col1, col2 = st.columns(2)
+
+    with col1:
+        if st.button("", key="fr_btn", help="Français"):
+            if current_lang != 'fr':
+                new_language = 'fr'
+
+    with col2:
+        if st.button("", key="en_btn", help="English"):
+            if current_lang != 'en':
+                new_language = 'en'
+
+    # Afficher les icônes sur les boutons
+    st.markdown(f"""
+    <style>
+    /* Bouton FR */
+    button[data-testid="baseButton-secondary"]:has-text(""):first-of-type::before {{
+        content: "";
+        background-image: url('{france_icon}');
+        background-size: 16px 16px;
+        background-repeat: no-repeat;
+        background-position: center;
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+    }}
+
+    /* Bouton EN */
+    button[data-testid="baseButton-secondary"]:has-text(""):last-of-type::before {{
+        content: "";
+        background-image: url('{gb_icon}');
+        background-size: 16px 16px;
+        background-repeat: no-repeat;
+        background-position: center;
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+    }}
+
+    /* Style des boutons */
+    div[data-testid="column"] button {{
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        padding: 4px !important;
+        min-width: 24px !important;
+        height: 24px !important;
+    }}
+
+    div[data-testid="column"] button:hover {{
+        background: rgba(255,255,255,0.1) !important;
+        transform: scale(1.1) !important;
+    }}
+    </style>
+
+    <script>
+    // Ajouter les icônes directement aux boutons
+    setTimeout(() => {{
+        const buttons = document.querySelectorAll('button[data-testid="baseButton-secondary"]');
+        if (buttons.length >= 2) {{
+            buttons[0].innerHTML = '<img src="{france_icon}" style="width:16px;height:16px;">';
+            buttons[1].innerHTML = '<img src="{gb_icon}" style="width:16px;height:16px;">';
+        }}
+    }}, 100);
+    </script>
+    """, unsafe_allow_html=True)
+
+    # Si la langue change, mettre à jour silencieusement
+    if new_language != current_lang:
+        set_language(new_language)
+        st.session_state.language = new_language
+        st.rerun()
+
+    return get_language()
 
 
 def render_llm_configuration(config, t, settings):
@@ -111,14 +241,14 @@ def render_conversation_memory(config, settings, orchestrator):
                     # Boutons d'action
                     col1, col2 = st.columns(2)
                     with col1:
-                        if st.button("Effacer mémoire", help="Effacer toute la mémoire conversationnelle", key="clear_memory_btn"):
+                        if st.button(t('clear_memory'), help="Effacer toute la mémoire conversationnelle", key="clear_memory_btn"):
                             if orchestrator:
                                 orchestrator.clear_conversation_memory()
-                                st.success("Mémoire effacée!")
+                                st.success(t('memory_cleared'))
                                 st.rerun()
                     
                     with col2:
-                        if st.button("Exporter conversation", help="Exporter la conversation actuelle", key="export_conversation_btn"):
+                        if st.button(t('export_conversation'), help="Exporter la conversation actuelle", key="export_conversation_btn"):
                             if orchestrator:
                                 export_data = orchestrator.export_conversation()
                                 st.json(export_data)
@@ -142,10 +272,10 @@ def render_configuration_management(config, settings):
         reload_clicked = False
         
         with col1:
-            save_clicked = st.button("Sauvegarder Config", help="Sauvegarder la configuration actuelle", key="save_config_btn")
+            save_clicked = st.button(t('save_config'), help="Sauvegarder la configuration actuelle", key="save_config_btn")
         
         with col2:
-            reload_clicked = st.button("Recharger Config", help="Recharger depuis le fichier", key="reload_config_btn")
+            reload_clicked = st.button(t('reload_config'), help="Recharger depuis le fichier", key="reload_config_btn")
         
         if save_clicked:
             # Mettre à jour la config avec les settings actuels
@@ -164,11 +294,11 @@ def render_configuration_management(config, settings):
             config.rag.force_rag_keywords = settings["force_rag_keywords"].split(",")
             
             save_config()
-            st.success("Configuration sauvegardée!")
+            st.success(t('config_saved'))
         
         if reload_clicked:
             reload_config()
-            st.success("Configuration rechargée!")
+            st.success(t('config_reloaded'))
             st.rerun()
 
 
@@ -196,7 +326,7 @@ def initialize_or_update_orchestrator(settings, session_state, config):
                     settings["enable_conversation_memory"]):
                     session_state.orchestrator.conversation_memory.window_size = settings["conversation_window_size"]
                 
-                st.success("Assistant configuré avec succès!")
+                st.success(t('assistant_configured_success'))
                 return True
             except Exception as e:
                 st.error(f"Erreur de configuration: {str(e)}")
@@ -214,38 +344,54 @@ def render_sidebar(config, t, session_state):
     render_modern_sidebar_user_info()
 
     # ------------------- Navigation -------------------
-    st.markdown("### Navigation")
+    st.markdown(f"### {t('navigation')}")
+
+    # Use translated page names for display
+    page_translations = {
+        "Chat": t('chat'),
+        "Summary": t('summary'),
+        "Configuration": t('configuration'),
+        "Database": t('database'),
+        "Login": t('login')
+    }
 
     available_pages = ["Chat", "Summary", "Configuration", "Database", "Login"]
+    translated_page_names = [page_translations[page] for page in available_pages]
 
     # Initialiser la page sélectionnée
     if 'selected_page' not in session_state:
         session_state.selected_page = "Chat"
 
-    selected_page = st.selectbox(
-        "Aller à la page:",
-        available_pages,
-        index=available_pages.index(session_state.selected_page),
+    # Find current page index for translated names
+    current_page_index = available_pages.index(session_state.selected_page)
+
+    selected_page_display = st.selectbox(
+        t('goto_page'),
+        translated_page_names,
+        index=current_page_index,
         key="page_selector"
     )
+
+    # Convert back to internal page name
+    selected_page = available_pages[translated_page_names.index(selected_page_display)]
 
     if selected_page != session_state.selected_page:
         session_state.selected_page = selected_page
         st.rerun()
 
     page_descriptions = {
-        "Chat": "Interface conversationnelle RAG",
-        "Summary": "Résumés intelligents de réglementations",
-        "Configuration": "Paramètres LLM et RAG", 
-        "Database": "Gestion ChromaDB (Admin)",
-        "Login": "Authentification moderne"
+        "Chat": t('chat_description'),
+        "Summary": t('summary_description'),
+        "Configuration": t('configuration_description'),
+        "Database": t('database_description'),
+        "Login": t('login_description')
     }
 
     if selected_page in page_descriptions:
         st.caption(page_descriptions[selected_page])
 
     if selected_page == "Database":
-        st.warning("Accès administrateur requis")
+        st.warning(t('admin_access_required'))
 
     st.divider()
 
@@ -265,9 +411,15 @@ def render_sidebar(config, t, session_state):
     # Export conversation
     if session_state.messages:
         export_conversation_to_pdf(session_state.messages)
-    
+
+    # ------------------- Sélecteur de langue (footer) -------------------
     st.markdown("<br>", unsafe_allow_html=True)
+    current_language = session_state.get('language', config.ui.default_language)
+    new_language = render_language_selector(config, t, current_language)
+    if new_language != current_language:
+        session_state.language = new_language
+
     st.caption(t("version"))
     st.caption(t("copyright"))
-    
+
     return session_state 

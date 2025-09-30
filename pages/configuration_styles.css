@@ -117,15 +117,15 @@
 
 /* Selectboxes modernes */
 .stSelectbox > div > div {
-    border: 1px solid #d1d5db !important;
-    border-radius: 8px !important;
-    background: white !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
     transition: all 0.15s ease !important;
 }
 
 .stSelectbox > div > div:focus-within {
-    border-color: #3b82f6 !important;
-    box-shadow: 0 0 0 3px hsl(211 96% 48% / 0.15) !important;
+    border: none !important;
+    box-shadow: none !important;
 }
 
 /* Text inputs */
