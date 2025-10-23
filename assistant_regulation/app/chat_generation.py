@@ -5,6 +5,7 @@ import streamlit as st
 from datetime import datetime
 from assistant_regulation.app.display_manager import display_sources
 from assistant_regulation.app.streamlit_utils import process_latex_formulas, process_latex_formulas_safe
+from translations import t
 
 
 def get_current_time():
@@ -353,7 +354,7 @@ def clear_chat_history():
     """Vide l'historique de chat"""
     if 'messages' in st.session_state:
         st.session_state.messages = []
-    st.success("Historique de conversation vidé !")
+    st.success(t('conversation_history_cleared'))
 
 
 def export_chat_history():

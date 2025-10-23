@@ -6,6 +6,7 @@ Remplace l'ancien système auth_components.py
 import streamlit as st
 from components.modern_auth_component import ModernAuthManager, render_modern_login
 from components.auth_components import SimpleAuth
+from translations import t
 
 
 def render_modern_auth_page():
@@ -266,7 +267,7 @@ def require_modern_authentication() -> bool:
     """
     if not st.session_state.get("authenticated", False):
         # Rediriger vers la page Login au lieu d'afficher le composant ici
-        st.markdown("""
+        st.markdown(f"""
         <div style="text-align: center; padding: 2rem;">
             <div style="
                 background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(239, 68, 68, 0.05));
@@ -276,8 +277,8 @@ def require_modern_authentication() -> bool:
                 margin: 2rem auto;
                 max-width: 400px;
             ">
-                <h3 style="color: #ef4444; margin-bottom: 12px;">Accès restreint</h3>
-                <p style="color: #6b7280; margin-bottom: 16px;">Veuillez vous connecter pour accéder à cette page</p>
+                <h3 style="color: #ef4444; margin-bottom: 12px;">{t('access_restricted_title')}</h3>
+                <p style="color: #6b7280; margin-bottom: 16px;">{t('login_required_message')}</p>
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -285,7 +286,7 @@ def require_modern_authentication() -> bool:
         # Bouton pour aller à la page Login
         col1, col2, col3 = st.columns([1, 1, 1])
         with col2:
-            if st.button("Aller à la page Login", type="primary", width='stretch'):
+            if st.button(t('go_to_login_page'), type="primary", width='stretch'):
                 st.session_state.selected_page = "Login"
                 st.rerun()
         
@@ -300,7 +301,7 @@ def require_modern_admin_access() -> bool:
     """
     if not st.session_state.get("authenticated", False):
         # Rediriger vers la page Login
-        st.markdown("""
+        st.markdown(f"""
         <div style="text-align: center; padding: 2rem;">
             <div style="
                 background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(239, 68, 68, 0.05));
@@ -310,8 +311,8 @@ def require_modern_admin_access() -> bool:
                 margin: 2rem auto;
                 max-width: 400px;
             ">
-                <h3 style="color: #ef4444; margin-bottom: 12px;">Accès administrateur requis</h3>
-                <p style="color: #6b7280; margin-bottom: 16px;">Veuillez vous connecter avec un compte administrateur</p>
+                <h3 style="color: #ef4444; margin-bottom: 12px;">{t('admin_access_required')}</h3>
+                <p style="color: #6b7280; margin-bottom: 16px;">{t('admin_login_required_message')}</p>
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -319,14 +320,14 @@ def require_modern_admin_access() -> bool:
         # Bouton pour aller à la page Login
         col1, col2, col3 = st.columns([1, 1, 1])
         with col2:
-            if st.button("Aller à la page Login", type="primary", width='stretch', key="admin_login_btn"):
+            if st.button(t('go_to_login_page'), type="primary", width='stretch', key="admin_login_btn"):
                 st.session_state.selected_page = "Login"
                 st.rerun()
                 
         return False
     
     if st.session_state.get("user_role") != "admin":
-        st.markdown("""
+        st.markdown(f"""
         <div style="text-align: center; padding: 2rem;">
             <div style="
                 background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(239, 68, 68, 0.05));
@@ -336,8 +337,8 @@ def require_modern_admin_access() -> bool:
                 margin: 2rem auto;
                 max-width: 400px;
             ">
-                <h3 style="color: #ef4444; margin-bottom: 12px;">Accès interdit</h3>
-                <p style="color: #6b7280; margin-bottom: 16px;">Cette page est réservée aux administrateurs</p>
+                <h3 style="color: #ef4444; margin-bottom: 12px;">{t('access_forbidden')}</h3>
+                <p style="color: #6b7280; margin-bottom: 16px;">{t('admin_only_page')}</p>
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -345,7 +346,7 @@ def require_modern_admin_access() -> bool:
         # Bouton pour aller à la page Login avec un compte admin
         col1, col2, col3 = st.columns([1, 1, 1])
         with col2:
-            if st.button("Se connecter en Admin", type="primary", width='stretch', key="admin_access_btn"):
+            if st.button(t('login_as_admin'), type="primary", width='stretch', key="admin_access_btn"):
                 st.session_state.selected_page = "Login"
                 st.rerun()
                 
@@ -411,7 +412,7 @@ def render_dedicated_login_page():
         # Composant d'authentification moderne avec hauteur explicite
         if render_modern_login(auth_backend, theme="dark", key_suffix="_login_page", height=750):
             # Connexion réussie - rediriger vers Chat
-            st.success("Connexion réussie! Redirection en cours...")
+            st.success(t('login_successful'))
             st.session_state.selected_page = "Chat"
             st.rerun()
 

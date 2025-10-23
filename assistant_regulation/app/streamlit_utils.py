@@ -2,6 +2,7 @@
 Utilities for Streamlit application
 """
 import streamlit as st
+from translations import t
 import base64
 import pandas as pd
 import re
@@ -552,12 +553,12 @@ def display_regulation_metrics():
     """Affiche des métriques sur les réglementations disponibles"""
     # Données d'exemple - dans une implémentation réelle, ces données viendraient de votre base
     regulations = [
-        {"code": "R046", "title": "Dispositifs de vision indirecte", "version": "06 series"},
-        {"code": "R107", "title": "Véhicules des catégories M2 et M3", "version": "07 series"},
-        {"code": "R048", "title": "Installation des dispositifs d'éclairage", "version": "05 series"},
+        {"code": "R046", "title": t('regulation_r046_title'), "version": "06 series"},
+        {"code": "R107", "title": t('regulation_r107_title'), "version": "07 series"},
+        {"code": "R048", "title": t('regulation_r048_title'), "version": "05 series"},
     ]
     
-    st.markdown("<h3 style='color: white;', align='center'>Réglementations disponibles</h3>", unsafe_allow_html=True)
+    st.markdown(f"<h3 style='color: white;', align='center'>{t('available_regulations')}</h3>", unsafe_allow_html=True)
     
     cols = st.columns(len(regulations))
     for i, reg in enumerate(regulations):

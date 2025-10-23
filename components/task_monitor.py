@@ -8,6 +8,7 @@ import time
 from datetime import datetime, timedelta
 from typing import List, Optional
 from utils.task_manager import get_task_manager, TaskStatus, TaskInfo
+from translations import t
 
 
 def render_task_monitor(show_completed: bool = True, max_tasks: int = 20, key_prefix: str = "main"):
@@ -47,7 +48,7 @@ def render_task_monitor(show_completed: bool = True, max_tasks: int = 20, key_pr
     
     # Affichage des tâches
     if not display_tasks:
-        st.info("Aucune tâche en cours" if not show_completed else "Aucune tâche")
+        st.info(t('no_task_running'))
         return
     
     # Grouper par statut
@@ -63,7 +64,7 @@ def render_task_monitor(show_completed: bool = True, max_tasks: int = 20, key_pr
     
     # Tâches en attente
     if pending_tasks:
-        st.markdown("### ⏳ En attente")
+        st.markdown(f"### ⏳ {t('pending')}")
         for i, task in enumerate(pending_tasks):
             render_task_card(task, expanded=False, key_prefix=f"{key_prefix}_pending_{i}")
     
@@ -154,7 +155,7 @@ def render_task_card(task: TaskInfo, expanded: bool = False, show_details: bool 
                 if st.button(f"⏹️ Annuler", key=f"cancel_{key_prefix}_{task.id}"):
                     task_manager = get_task_manager()
                     if task_manager.cancel_task(task.id):
-                        st.success("Tâche annulée")
+                        st.success(t('task_cancelled'))
                         st.rerun()
     else:
         # Affichage compact
@@ -165,7 +166,7 @@ def render_task_card(task: TaskInfo, expanded: bool = False, show_details: bool 
 def display_task_results(result: dict):
     """Affiche les résultats d'une tâche terminée"""
     if not result:
-        st.info("Aucun résultat disponible")
+        st.info(t('no_result_available'))
         return
     
     task_type = result.get("type", "unknown")
@@ -189,13 +190,13 @@ def display_task_results(result: dict):
     
     elif task_type == "folder_ingestion":
         if result.get("success"):
-            st.success("✅ Ingestion terminée avec succès")
+            st.success(t('ingestion_success'))
             
             stats = result.get("stats", {})
             if stats:
                 st.json(stats)
         else:
-            st.error("❌ Échec de l'ingestion")
+            st.error(t('ingestion_failed'))
     
     elif task_type == "ingestion":
         col1, col2 = st.columns(2)

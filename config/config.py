@@ -87,9 +87,14 @@ class UIConfig:
         "large": 350
     })
     
-    # Pagination
+    # Pagination et limites d'affichage
     max_sources_display: int = 50
     max_images_per_response: int = 10
+
+    # Limites d'affichage par type de contenu
+    max_text_sources_compact: int = 3     # Nombre de sources texte affichées en mode compact
+    max_images_display: int = 6           # Nombre d'images affichées maximum
+    max_tables_display: int = 3           # Nombre de tableaux affichés maximum
 
 @dataclass
 class DatabaseConfig:

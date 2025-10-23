@@ -9,6 +9,7 @@ import json
 import logging
 from datetime import datetime
 from typing import List, Dict, Any, Optional
+from translations import t
 try:
     from assistant_regulation.planning.services.intelligent_summary_service import IntelligentSummaryService, SummaryConfig
 except ImportError as e:
@@ -177,10 +178,10 @@ def load_saved_summaries() -> List[Dict]:
 
 def render_summary_generator():
     """Interface de génération de résumés"""
-    st.markdown("""
+    st.markdown(f"""
     <div style="background: #f8f9fa; border: 1px solid #e9ecef; padding: 1.5rem; border-radius: 4px; margin-bottom: 2rem;">
-        <h3 style="color: #343a40; margin: 0; font-weight: 500;">Générateur de Résumés</h3>
-        <p style="color: #6c757d; margin: 0.5rem 0 0 0; font-size: 0.95rem;">Synthèses automatiques de réglementations</p>
+        <h3 style="color: #343a40; margin: 0; font-weight: 500;">{t('summary_generator')}</h3>
+        <p style="color: #6c757d; margin: 0.5rem 0 0 0; font-size: 0.95rem;">{t('automatic_regulation_syntheses')}</p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -188,8 +189,8 @@ def render_summary_generator():
     regulations = get_available_regulations()
     
     if not regulations:
-        st.error("Aucune réglementation trouvée dans la base de données.")
-        st.info("Assurez-vous que des documents ont été ingérés dans la base ChromaDB.")
+        st.error(t('no_regulations_found'))
+        st.info(t('ensure_documents_ingested'))
         return
     
     # Interface de sélection
@@ -203,9 +204,9 @@ def render_summary_generator():
             reg_options[display_text] = reg['code']
         
         selected_display = st.selectbox(
-            "Sélectionnez une réglementation",
+            t('select_regulation'),
             options=list(reg_options.keys()),
-            help="Choisissez la réglementation à résumer"
+            help=t('choose_regulation_to_summarize')
         )
         
         selected_reg_code = reg_options[selected_display]
@@ -214,16 +215,16 @@ def render_summary_generator():
     with col2:
         # Configuration LLM
         llm_provider = st.selectbox(
-            "Modèle LLM",
+            t('llm_model'),
             ["mistral", "ollama"],
-            help="Mistral recommandé pour la qualité, Ollama pour l'usage local"
+            help=t('mistral_recommended')
         )
         
         if llm_provider == "mistral":
-            model_name = st.selectbox("Modèle Mistral", 
+            model_name = st.selectbox(t('mistral_model'),
                                     ["mistral-large-latest", "mistral-medium-latest", "mistral-small-latest"])
         else:
-            model_name = st.text_input("Modèle Ollama", value="llama3.2", help="Ex: llama3.2, codellama")
+            model_name = st.text_input(t('ollama_model'), value="llama3.2", help="Ex: llama3.2, codellama")
     
     # Informations sur la réglementation sélectionnée
     #st.markdown("""
@@ -233,49 +234,49 @@ def render_summary_generator():
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        st.markdown(f"**Réglementation:** {selected_reg['code']}")
+        st.markdown(f"**{t('regulation')}:** {selected_reg['code']}")
     with col2:
-        st.markdown(f"**Pages:** {selected_reg['estimated_pages']}")
+        st.markdown(f"**{t('pages')}:** {selected_reg['estimated_pages']}")
     with col3:
         # Calculer la longueur estimée du résumé
         if IntelligentSummaryService:
             service = IntelligentSummaryService()
             target_pages, ratio = service.calculate_target_length(selected_reg['estimated_pages'], selected_reg['chunks'])
-            st.markdown(f"**Résumé estimé:** {target_pages} pages")
+            st.markdown(f"**{t('estimated_summary')}:** {target_pages} {t('pages').lower()}")
         else:
-            st.markdown("**Résumé estimé:** N/A")
+            st.markdown(f"**{t('estimated_summary')}:** N/A")
     
     st.markdown("</div>", unsafe_allow_html=True)
     
     # Configuration avancée (masquée par défaut)
-    with st.expander("Paramètres avancés", expanded=False):
+    with st.expander(t('advanced_parameters'), expanded=False):
         st.markdown(f"""
-        **Chunks total:** {selected_reg['chunks']}  
-        **Ratio de compression:** {ratio:.1%}  
-        **Modèle LLM:** {llm_provider}/{model_name}
+        **{t('total_chunks')}:** {selected_reg['chunks']}
+        **{t('compression_ratio')}:** {ratio:.1%}
+        **{t('llm_model')}:** {llm_provider}/{model_name}
         """)
         
         if selected_reg.get('chunks_breakdown'):
             breakdown = selected_reg['chunks_breakdown']
-            st.markdown(f"**Contenu:** {breakdown['text']} texte, {breakdown['images']} images, {breakdown['tables']} tableaux")
+            st.markdown(f"**{t('content')}:** {breakdown['text']} {t('text')}, {breakdown['images']} {t('images')}, {breakdown['tables']} {t('tables')}")
     
     # Bouton de génération moderne
     st.markdown("<br>", unsafe_allow_html=True)
     
-    if st.button("Générer le Résumé", type="primary", use_container_width=True):
+    if st.button(t('generate_summary'), type="primary", use_container_width=True):
         
         # Vérifications préliminaires
         if llm_provider == "mistral" and not os.getenv("MISTRAL_API_KEY"):
-            st.error("ERREUR: MISTRAL_API_KEY non configurée. Configurez votre clé API Mistral.")
+            st.error(t('mistral_key_missing'))
             return
         
-        with st.spinner("Génération du résumé en cours..."):
+        with st.spinner(t('generating_summary')):
             progress_bar = st.progress(0)
             status_text = st.empty()
             
             try:
                 # Initialiser le service
-                status_text.text("Initialisation du service...")
+                status_text.text(t('service_initialization'))
                 progress_bar.progress(10)
                 
                 service = IntelligentSummaryService(
@@ -285,14 +286,14 @@ def render_summary_generator():
                 )
                 
                 # Générer le résumé directement
-                status_text.text("Génération du résumé par le LLM...")
+                status_text.text(t('llm_summary_generation'))
                 progress_bar.progress(30)
                 
                 # La méthode generate_regulation_summary prend seulement le regulation_code
                 summary_result = service.generate_regulation_summary(selected_reg['code'])
                 
                 progress_bar.progress(90)
-                status_text.text("Sauvegarde...")
+                status_text.text(t('saving'))
                 
                 # Sauvegarder
                 saved_path = save_summary_result(summary_result, selected_reg['code'])
@@ -304,7 +305,7 @@ def render_summary_generator():
                 st.session_state.current_summary = summary_result
                 st.session_state.summary_saved_path = saved_path
                 
-                st.success(f"Résumé généré avec succès en {summary_result.processing_time:.1f}s!")
+                st.success(t('summary_generated_successfully'))
                 
                 # Statistiques finales
                 st.markdown("""
@@ -330,7 +331,7 @@ def render_summary_generator():
             except Exception as e:
                 progress_bar.empty()
                 status_text.empty()
-                st.error(f"Erreur lors de la génération: {str(e)}")
+                st.error(f"{t('error_generating_summary')}: {str(e)}")
                 logger.error(f"Erreur génération résumé: {e}")
 
 
@@ -399,19 +400,19 @@ def render_current_summary():
 
 def render_saved_summaries():
     """Affiche les résumés sauvegardés"""
-    st.markdown("""
+    st.markdown(f"""
     <div style="background: #f8f9fa; border: 1px solid #e9ecef; padding: 1.5rem; border-radius: 4px; margin-bottom: 2rem;">
-        <h3 style="color: #343a40; margin: 0; font-weight: 500;">Historique des Résumés</h3>
-        <p style="color: #6c757d; margin: 0.5rem 0 0 0; font-size: 0.95rem;">Résumés précédemment générés</p>
+        <h3 style="color: #343a40; margin: 0; font-weight: 500;">{t('summary_history')}</h3>
+        <p style="color: #6c757d; margin: 0.5rem 0 0 0; font-size: 0.95rem;">{t('previously_generated_summaries')}</p>
     </div>
     """, unsafe_allow_html=True)
     
     summaries = load_saved_summaries()
     
     if not summaries:
-        st.markdown("""
+        st.markdown(f"""
         <div style="background: #f8f9fa; padding: 2rem; border-radius: 4px; text-align: center; border: 1px dashed #dee2e6;">
-            <p style="color: #6c757d; margin: 0;">Aucun résumé sauvegardé</p>
+            <p style="color: #6c757d; margin: 0;">{t('no_saved_summaries')}</p>
         </div>
         """, unsafe_allow_html=True)
         return
@@ -423,25 +424,25 @@ def render_saved_summaries():
         # Filtrer par réglementation
         all_reg_codes = sorted(list(set(s.get('regulation_code', 'Unknown') for s in summaries)))
         selected_regs = st.multiselect(
-            "Filtrer par réglementation",
+            t('filter_by_regulation'),
             all_reg_codes,
             default=all_reg_codes[:5] if len(all_reg_codes) > 5 else all_reg_codes
         )
     
     with col2:
         sort_by = st.selectbox(
-            "Trier par",
-            ["Date (récent)", "Date (ancien)", "Réglementation", "Taille"]
+            t('sort_by'),
+            [t('date_recent'), t('date_old'), t('regulation'), t('size')]
         )
     
     # Filtrer et trier
     filtered_summaries = [s for s in summaries if s.get('regulation_code') in selected_regs]
     
-    if sort_by == "Date (ancien)":
+    if sort_by == t('date_old'):
         filtered_summaries.sort(key=lambda x: x.get('generated_at', ''))
-    elif sort_by == "Réglementation":
+    elif sort_by == t('regulation'):
         filtered_summaries.sort(key=lambda x: x.get('regulation_code', ''))
-    elif sort_by == "Taille":
+    elif sort_by == t('size'):
         filtered_summaries.sort(key=lambda x: x.get('summary_length', 0), reverse=True)
     
     # Affichage des résumés dans des cartes modernes
@@ -497,32 +498,32 @@ def main():
     st.markdown('<div class="summary-page-container">', unsafe_allow_html=True)
     
     # Titre sobre
-    st.markdown("""
+    st.markdown(f"""
     <div style="text-align: center; padding: 2rem 0;">
-        <h1 style="color: #343a40; font-weight: 400; font-size: 2rem; margin: 0;">Résumés de Réglementations</h1>
-        <p style="color: #6c757d; font-size: 1rem; margin: 0.5rem 0 0 0;">Synthèses automatiques de documents</p>
+        <h1 style="color: #343a40; font-weight: 400; font-size: 2rem; margin: 0;">{t('summary_history')}</h1>
+        <p style="color: #6c757d; font-size: 1rem; margin: 0.5rem 0 0 0;">{t('automatic_regulation_syntheses')}</p>
     </div>
     """, unsafe_allow_html=True)
     
     # Information sur le service
-    with st.expander("Comment ça marche", expanded=False):
-        st.markdown("""
-        **Fonctionnement :**
-        - Analyse intelligente des documents réglementaires
-        - Résumés proportionnels à la taille du document  
-        - Structure hiérarchique préservée
-        - Informations techniques conservées
-        
-        **Tailles de résumé :**
-        - 15 pages ou moins : 1 page de résumé
-        - 30 pages ou moins : 2 pages de résumé  
-        - 60 pages ou moins : 3-4 pages de résumé
-        - 100 pages ou moins : 5-7 pages de résumé
-        - Plus de 100 pages : 8-12 pages maximum
+    with st.expander(t('how_it_works'), expanded=False):
+        st.markdown(f"""
+        **{t('operation')} :**
+        - {t('intelligent_analysis')}
+        - {t('proportional_summaries')}
+        - {t('hierarchy_preserved')}
+        - {t('technical_info_preserved')}
+
+        **{t('summary_sizes')} :**
+        - {t('size_15_pages')}
+        - {t('size_30_pages')}
+        - {t('size_60_pages')}
+        - {t('size_100_pages')}
+        - {t('size_over_100_pages')}
         """)
     
     # Onglets
-    tab1, tab2 = st.tabs(["Générateur", "Historique"])
+    tab1, tab2 = st.tabs([t('summary_tabs_generator'), t('summary_tabs_history')])
     
     with tab1:
         render_summary_generator()

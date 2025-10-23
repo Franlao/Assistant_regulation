@@ -4,6 +4,7 @@ Contenu principal de l'application Streamlit
 import streamlit as st
 import time
 from assistant_regulation.app.streamlit_utils import get_current_time, display_regulation_metrics, generate_unique_key, get_intelligent_routing_badge
+from translations import t as get_t
 from .display_components import display_sources, display_images, display_tables, stream_assistant_response
 from assistant_regulation.planning.Orchestrator.modular_orchestrator import ModularOrchestrator
 
@@ -82,10 +83,10 @@ def render_message_history(t, config):
                 display_images(message["images"], section_key=generate_unique_key("img_section"), t=t, config=config)
                 
             if "tables" in message and message["tables"]:
-                display_tables(message["tables"], t=t)
+                display_tables(message["tables"], t=t, config=config)
                 
             if "sources" in message and message["sources"]:
-                display_sources(message["sources"], t=t, compact=True)
+                display_sources(message["sources"], t=t, compact=True, config=config)
 
 
 def process_user_query(query, t, config):
@@ -185,9 +186,9 @@ def process_user_query(query, t, config):
                 display_images(result["images"], section_key=generate_unique_key("img_section"), t=t, config=config)
                 
             if result["tables"]:
-                display_tables(result["tables"], t=t)
-                
-            display_sources(result["sources"], t=t, compact=False)
+                display_tables(result["tables"], t=t, config=config)
+
+            display_sources(result["sources"], t=t, compact=True, config=config)
     
     except Exception as e:
         st.error(f"Une erreur s'est produite: {str(e)}")
@@ -214,7 +215,7 @@ def render_main_content(t, config):
     render_message_history(t, config)
     
     # Zone de saisie pour la question
-    query = st.chat_input("Posez votre question sur les réglementations automobiles...")
+    query = st.chat_input(t('ask_question_placeholder'))
     
     # Traitement de la question
     if query:
@@ -223,4 +224,4 @@ def render_main_content(t, config):
     # Afficher un pied de page
     st.markdown("<br>", unsafe_allow_html=True)
     st.divider()
-    st.caption("<p style='color: white;'> Cet assistant utilise les bases de données officielles des réglementations UN/ECE. Les réponses sont générées à titre informatif uniquement.</p>", unsafe_allow_html=True) 
+    st.caption(f"<p style='color: white;'> {t('footer')}</p>", unsafe_allow_html=True) 

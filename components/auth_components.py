@@ -8,6 +8,7 @@ import sqlite3
 import os
 from typing import Optional, Tuple
 from pathlib import Path
+from translations import t
 
 
 class SimpleAuth:
@@ -172,8 +173,8 @@ def render_login_form() -> bool:
         """)
     
     with st.form("login_form", clear_on_submit=False):
-        username = st.text_input("👤 Nom d'utilisateur", placeholder="admin ou user")
-        password = st.text_input("🔒 Mot de passe", type="password", placeholder="Votre mot de passe")
+        username = st.text_input(f"👤 {t('username')}", placeholder="admin ou user")
+        password = st.text_input(f"🔒 {t('password')}", type="password", placeholder="Votre mot de passe")
         
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
@@ -181,7 +182,7 @@ def render_login_form() -> bool:
         
         if login_submitted:
             if not username or not password:
-                st.error("Veuillez saisir nom d'utilisateur et mot de passe")
+                st.error(t('please_enter_username'))
                 st.markdown('</div>', unsafe_allow_html=True)
                 return False
             
@@ -201,7 +202,7 @@ def render_login_form() -> bool:
                 st.rerun()
                 return True
             else:
-                st.error("❌ Identifiants incorrects")
+                st.error(f"❌ {t('invalid_credentials')}")
     
     st.markdown('</div>', unsafe_allow_html=True)
     return False
@@ -239,7 +240,7 @@ def render_user_info():
     """, unsafe_allow_html=True)
     
     # Bouton de déconnexion
-    if st.button("🚪 Déconnexion", width='stretch', key="logout_btn"):
+    if st.button(f"🚪 {t('logout')}", width='stretch', key="logout_btn"):
         logout()
         st.rerun()
 
@@ -251,36 +252,36 @@ def render_change_password_form():
     
     with st.expander("🔑 Changer le mot de passe", expanded=False):
         with st.form("change_password_form"):
-            old_password = st.text_input("Ancien mot de passe", type="password")
-            new_password = st.text_input("Nouveau mot de passe", type="password")
-            confirm_password = st.text_input("Confirmer nouveau mot de passe", type="password")
+            old_password = st.text_input(t('old_password'), type="password")
+            new_password = st.text_input(t('new_password'), type="password")
+            confirm_password = st.text_input(t('confirm_new_password'), type="password")
             
             if st.form_submit_button("🔄 Changer mot de passe"):
                 if not old_password or not new_password or not confirm_password:
-                    st.error("Veuillez remplir tous les champs")
+                    st.error(t('fill_all_fields'))
                     return
                 
                 if new_password != confirm_password:
-                    st.error("Les nouveaux mots de passe ne correspondent pas")
+                    st.error(t('passwords_dont_match'))
                     return
                 
                 if len(new_password) < 6:
-                    st.error("Le nouveau mot de passe doit contenir au moins 6 caractères")
+                    st.error(t('password_too_short'))
                     return
                 
                 auth = SimpleAuth()
                 username = st.session_state.get("username")
                 
                 if auth.change_password(username, old_password, new_password):
-                    st.success("✅ Mot de passe changé avec succès!")
+                    st.success(f"✅ {t('password_changed_success')}")
                 else:
-                    st.error("❌ Ancien mot de passe incorrect")
+                    st.error(f"❌ {t('wrong_old_password')}")
 
 
 def require_authentication() -> bool:
     """Vérifie l'authentification requise - à utiliser dans les pages"""
     if not st.session_state.get("authenticated", False):
-        st.warning("🔒 **Accès restreint** - Veuillez vous connecter pour accéder à cette page.")
+        st.warning(f"🔒 **{t('access_restricted')}**")
         render_login_form()
         return False
     return True
@@ -292,8 +293,8 @@ def require_admin_access() -> bool:
         return False
     
     if st.session_state.get("user_role") != "admin":
-        st.error("🚫 **Accès interdit** - Cette page est réservée aux administrateurs.")
-        st.info("Connectez-vous avec un compte administrateur pour accéder à cette fonctionnalité.")
+        st.error(f"🚫 **{t('access_forbidden')}**")
+        st.info(t('login_with_admin'))
         return False
     
     return True

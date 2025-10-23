@@ -11,6 +11,7 @@ from pathlib import Path
 import uuid
 import time
 import mimetypes
+from translations import t
 
 # Fix MIME type issues - solution la plus courante pour composants vides
 mimetypes.add_type('application/javascript', '.js')
@@ -247,7 +248,7 @@ class ModernAuthManager:
             True si authentifié
         """
         if not st.session_state.get("authenticated", False):
-            st.warning("Accès restreint - Veuillez vous connecter")
+            st.warning(t('access_restricted'))
             return self.render_login()
         return True
     
@@ -289,7 +290,7 @@ def render_modern_login(auth_backend=None, theme="dark", language="fr", key_suff
 if __name__ == "__main__":
     st.set_page_config(page_title="Modern Auth Test", layout="wide")
     
-    st.title("Test du Composant d'Authentification Moderne")
+    st.title(t('test_auth_component'))
     
     # Simuler un backend simple pour les tests
     class MockAuth:
@@ -306,7 +307,7 @@ if __name__ == "__main__":
         user_info = auth_manager.get_user_info()
         st.success(f"Connecté en tant que : {user_info['username']} ({user_info['role']})")
         
-        if st.button("Se déconnecter"):
+        if st.button(t('disconnect')):
             auth_manager._handle_logout({"action": "logout"})
     else:
-        st.info("Utilisez test/test pour vous connecter")
+        st.info(t('use_test_credentials'))

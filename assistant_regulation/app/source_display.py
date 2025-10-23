@@ -4,6 +4,7 @@ Composants avancés pour l'affichage des sources avec liens cliquables et citati
 import streamlit as st
 import re
 from typing import List, Dict, Any, Optional
+from translations import t
 
 
 def display_enhanced_sources(sources: List[Dict], t=None):
@@ -18,7 +19,7 @@ def display_enhanced_sources(sources: List[Dict], t=None):
         return
     
     # Titre de la section sources
-    st.markdown("### 📚 Sources citées", unsafe_allow_html=True)
+    st.markdown(f"### 📚 {t('sources_cited')}", unsafe_allow_html=True)
     
     # CSS pour les sources
     st.markdown("""
@@ -293,7 +294,7 @@ def display_source_summary(sources: List[Dict]):
     if not sources:
         return
     
-    st.markdown("### 📊 Résumé des sources")
+    st.markdown(f"### 📊 {t('sources_summary')}")
     
     # Statistiques générales
     col1, col2, col3, col4 = st.columns(4)
@@ -397,7 +398,7 @@ def display_compact_sources(sources: List[Dict], t=None):
         return
     
     # Titre de la section sources
-    st.markdown("### 📚 Sources citées", unsafe_allow_html=True)
+    st.markdown(f"### 📚 {t('sources_cited')}", unsafe_allow_html=True)
     
     # CSS pour les références compactes
     st.markdown("""
@@ -562,9 +563,10 @@ def display_with_document_opener(response_text: str, sources: List[Dict], images
                 for i, source in enumerate(sources):
                     col_idx = i % len(cols)
                     with cols[col_idx]:
-                        # Créer une clé unique incluant un hash du contenu de la source
-                        source_hash = hash(str(source.get('content', ''))[:100]) % 10000
-                        if st.button(f"Source {i+1}", key=f"btn_source_{i+1}_{source_hash}"):
+                        # Créer une clé unique incluant timestamp et index
+                        import time
+                        unique_id = f"{int(time.time() * 1000)}_{i}"
+                        if st.button(f"Source {i+1}", key=f"btn_source_{i+1}_{unique_id}"):
                             from .document_opener import get_document_path, open_document_at_page
                             doc_path = get_document_path(source)
                             if doc_path:
@@ -584,9 +586,9 @@ def display_with_document_opener(response_text: str, sources: List[Dict], images
                                 if success:
                                     st.success(f"Document ouvert : Source {i+1}")
                                 else:
-                                    st.error("Impossible d'ouvrir le document")
+                                    st.error(t('cannot_access_document'))
                             else:
-                                st.error("Chemin du document non trouvé")
+                                st.error(t('document_path_not_found'))
             
             # Boutons pour les images
             if images:
@@ -595,9 +597,9 @@ def display_with_document_opener(response_text: str, sources: List[Dict], images
                 for i, image in enumerate(images):
                     col_idx = i % len(cols)
                     with cols[col_idx]:
-                        # Créer une clé unique incluant un hash de l'URL de l'image
-                        image_hash = hash(str(image.get('url', '')) + str(image.get('description', ''))) % 10000
-                        if st.button(f"Image {i+1}", key=f"btn_image_{i+1}_{image_hash}"):
+                        # Créer une clé unique incluant timestamp et index
+                        unique_id = f"{int(time.time() * 1000)}_{i}_img"
+                        if st.button(f"Image {i+1}", key=f"btn_image_{i+1}_{unique_id}"):
                             from .document_opener import get_document_path, open_document_at_page
                             doc_path = get_document_path(image)
                             if doc_path:
@@ -612,9 +614,9 @@ def display_with_document_opener(response_text: str, sources: List[Dict], images
                                 if success:
                                     st.success(f"Document ouvert : Image {i+1}")
                                 else:
-                                    st.error("Impossible d'ouvrir le document")
+                                    st.error(t('cannot_access_document'))
                             else:
-                                st.error("Chemin du document non trouvé")
+                                st.error(t('document_path_not_found'))
             
             # Boutons pour les tableaux
             if tables:
@@ -623,9 +625,9 @@ def display_with_document_opener(response_text: str, sources: List[Dict], images
                 for i, table in enumerate(tables):
                     col_idx = i % len(cols)
                     with cols[col_idx]:
-                        # Créer une clé unique incluant un hash du contenu du tableau
-                        table_hash = hash(str(table.get('content', ''))[:100]) % 10000
-                        if st.button(f"Tableau {i+1}", key=f"btn_table_{i+1}_{table_hash}"):
+                        # Créer une clé unique incluant timestamp et index
+                        unique_id = f"{int(time.time() * 1000)}_{i}_tbl"
+                        if st.button(f"Tableau {i+1}", key=f"btn_table_{i+1}_{unique_id}"):
                             from .document_opener import get_document_path, open_document_at_page
                             doc_path = get_document_path(table)
                             if doc_path:
@@ -640,9 +642,9 @@ def display_with_document_opener(response_text: str, sources: List[Dict], images
                                 if success:
                                     st.success(f"Document ouvert : Tableau {i+1}")
                                 else:
-                                    st.error("Impossible d'ouvrir le document")
+                                    st.error(t('cannot_access_document'))
                             else:
-                                st.error("Chemin du document non trouvé")
+                                st.error(t('document_path_not_found'))
     
     return processed_text
 

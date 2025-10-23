@@ -66,6 +66,89 @@ class MasterRoutingService:
             r'\bUN\s+R\s*\d+\b'       # UN R46
         ]
 
+    def _analyze_regulation_query_fast(self, query: str, detected_pattern: str) -> MasterRoutingDecision:
+        """Analyse rapide d'une requête contenant un code de réglementation."""
+        query_lower = query.lower()
+
+        # Extraire le code de réglementation
+        reg_match = re.search(detected_pattern, query, re.IGNORECASE)
+        reg_code = reg_match.group(0) if reg_match else None
+
+        # Normaliser le code
+        if reg_code:
+            reg_code = reg_code.upper().replace(' ', '')
+            if not reg_code.startswith(('R', 'ECE', 'UN')):
+                reg_code = f"R{reg_code}"
+
+        # Mots-clés indiquant une question ciblée (BY_REGULATION)
+        targeted_keywords = [
+            'exigences', 'exigence', 'requirements', 'requirement',
+            'dimensions', 'dimension', 'mesures', 'mesure',
+            'spécifications', 'spécification', 'specs',
+            'normes', 'norme', 'standards', 'standard',
+            'critères', 'critère', 'criteria',
+            'tests', 'test', 'essais', 'essai',
+            'procédures', 'procédure', 'procedure',
+            'conditions', 'condition',
+            'selon la', 'selon le', 'dans la', 'dans le',
+            'pour la', 'pour le', 'de la', 'du'
+        ]
+
+        # Vérifier si c'est une question ciblée
+        targeted_score = sum(1 for keyword in targeted_keywords if keyword in query_lower)
+
+        # Patterns indiquant une question précise
+        specific_patterns = [
+            r'\b(quelles?\s+sont|quels?\s+sont|what\s+are)\b',  # "quelles sont"
+            r'\b(comment\s+.*\s+(selon|dans|pour))\b',  # "comment ... selon la R046"
+            r'\b(où\s+.*\s+(selon|dans))\b',  # "où ... selon la R046"
+            r'\b(combien\s+.*\s+(selon|dans))\b'  # "combien ... selon la R046"
+        ]
+
+        specific_pattern_found = any(re.search(pattern, query, re.IGNORECASE) for pattern in specific_patterns)
+
+        # Décision : BY_REGULATION si question ciblée, sinon CLASSIC
+        if targeted_score >= 1 or specific_pattern_found:
+            # Question ciblée → BY_REGULATION
+            return self._create_fast_by_regulation_decision(query, reg_code, "targeted_question_detected")
+        else:
+            # Question générale mentionnant une réglementation → CLASSIC
+            return self._create_fast_vector_decision(query, "general_question_with_regulation")
+
+    def _create_fast_by_regulation_decision(self, query: str, reg_code: str, reasoning: str) -> MasterRoutingDecision:
+        """Créer une décision rapide pour recherche BY_REGULATION."""
+        # Nettoyer la query en retirant le code de réglementation
+        query_cleaned = query
+        for pattern in self.regulation_patterns:
+            query_cleaned = re.sub(pattern, '', query_cleaned, flags=re.IGNORECASE)
+        query_cleaned = re.sub(r'\s+', ' ', query_cleaned).strip()
+
+        return MasterRoutingDecision(
+            response_strategy=ResponseStrategy.VECTOR_SEARCH,
+            knowledge_source="vector_db",
+            search_config={
+                'search_type': 'by_regulation',
+                'method': 'search_by_regulation',
+                'params': {
+                    'regulation_code': reg_code,
+                    'query': query_cleaned
+                },
+                'confidence': 0.85,
+                'reasoning': f"Fast routing: {reasoning}"
+            },
+            confidence_score=0.85,
+            reasoning=f"Routage rapide ciblé: {reasoning}",
+            next_actions={
+                'action': 'vector_search',
+                'method': 'search_by_regulation',
+                'search_type': 'by_regulation',
+                'params': {
+                    'regulation_code': reg_code,
+                    'query': query_cleaned
+                }
+            }
+        )
+
     def _try_fast_routing(self, query: str) -> Optional[MasterRoutingDecision]:
         """Tentative de routage heuristique rapide sans appel LLM."""
         query_lower = query.lower()
@@ -73,7 +156,8 @@ class MasterRoutingService:
         # Vérifier les patterns de réglementation spécifiques
         for pattern in self.regulation_patterns:
             if re.search(pattern, query, re.IGNORECASE):
-                return self._create_fast_vector_decision(query, "regulation_code_detected")
+                # Analyser finement le type de question (ciblée vs générale)
+                return self._analyze_regulation_query_fast(query, pattern)
 
         # Vérifier les mots-clés automobiles
         automotive_score = sum(1 for keyword in self.automotive_keywords if keyword in query_lower)

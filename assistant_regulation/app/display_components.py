@@ -9,6 +9,7 @@ import os
 from datetime import datetime
 from typing import Dict, List, Any, Optional
 from .streamlit_utils import get_current_time, extract_table_from_text, generate_unique_key
+from translations import t
 
 
 def display_fullscreen_pdf(file_path, page_number, document_name, source_id):
@@ -33,7 +34,7 @@ def display_fullscreen_pdf(file_path, page_number, document_name, source_id):
     @st.dialog(f"{document_name} - Page {page_number}", width="large")
     def show_pdf():
         if not os.path.exists(file_path):
-            st.error("Document non accessible")
+            st.error(t('document_not_accessible'))
             return
             
         doc = fitz.open(file_path)
@@ -156,28 +157,39 @@ def display_inline_pdf_excerpt(file_path, page_number, source_id):
             st.exception(e)
 
 
-def display_sources(sources, t, compact=False):
+def display_sources(sources, t, compact=False, config=None):
     """Affiche les sources avec un design moderne et subtil"""
     if not sources:
-        st.warning("Aucune source disponible")
+        # Utiliser le système de traduction moderne
+        from translations import t as modern_t
+        st.warning(modern_t("no_sources_available") if hasattr(st.session_state, 'language') else "Aucune source disponible")
         return
-    
+
     # Affichage silencieux (pas de debug dans l'UI)
-    
+
     # Statistiques des sources
     total_sources = len(sources)
     unique_regs = len(set(source.get('regulation', 'Unknown') for source in sources))
-    
+
     # En-tête avec statistiques
     header_text = f"{total_sources} source{'s' if total_sources > 1 else ''}"
     if unique_regs > 1:
         header_text += f" • {unique_regs} réglementations"
-    
+
     with st.expander(header_text, expanded=False):
+        # Obtenir la limite de sources depuis la configuration ou les settings
+        max_sources_limit = 3  # valeur par défaut
+        if config:
+            max_sources_limit = config.ui.max_text_sources_compact
+
+        # Vérifier les settings de session pour override
+        if hasattr(st.session_state, 'settings') and 'max_text_sources_compact' in st.session_state.settings:
+            max_sources_limit = st.session_state.settings['max_text_sources_compact']
+
         # Mode compact pour affichage dans l'historique
-        if compact and total_sources > 3:
-            st.info(f"Affichage des 3 premières sources sur {total_sources} total(es)")
-            display_sources = sources[:3]
+        if compact and total_sources > max_sources_limit:
+            st.info(f"Affichage des {max_sources_limit} premières sources sur {total_sources} total(es)")
+            display_sources = sources[:max_sources_limit]
         else:
             display_sources = sources
         
@@ -211,7 +223,7 @@ def display_sources(sources, t, compact=False):
         
         # Lien pour voir toutes les sources si mode compact
         if compact and total_sources > 3:
-            st.caption("💡 Sources complètes disponibles dans la réponse générée")
+            st.caption(f"💡 {t('complete_sources_available')}")
 
 
 def _render_source_card(source, index, regulation_key=None):
@@ -352,7 +364,7 @@ def _render_source_card(source, index, regulation_key=None):
                 # Créer des clés uniques
                 preview_key = f"preview_{regulation_key or 'default'}_{index}_{hash(document_name) % 10000}"
                 if st.button(f"Aperçu", key=preview_key, help=f"Aperçu de {document_name}"):
-                    st.write("Bouton Aperçu cliqué!")
+                    st.write(t('preview_button_clicked'))
                     try:
                         if os.path.exists(file_path):
                             # Formatage sécurisé du numéro de page
@@ -399,7 +411,7 @@ def _render_source_card(source, index, regulation_key=None):
                         copy_key = f"copy_{regulation_key or 'default'}_{index}_{hash(document_name) % 10000}"
                         if st.button(f"Copier le lien", key=copy_key):
                             st.code(source_link)
-                            st.info("Copiez ce lien dans votre navigateur")
+                            st.info(t('copy_link_browser'))
         else:
             # Fallback si pas de lien disponible
             st.markdown(f"""
@@ -535,7 +547,7 @@ def _render_source_card_minimal(source, index, regulation_key=None):
                     
                     display_fullscreen_pdf(file_path, page_num, document_name, index)
                 else:
-                    st.error("Document inaccessible")
+                    st.error(t('document_inaccessible'))
 
 
 def display_images(images, max_height=300, section_key=None, t=None, config=None):
@@ -585,6 +597,20 @@ def display_images(images, max_height=300, section_key=None, t=None, config=None
         if not valid_images:
             st.warning(t("no_images_available") if t else "Aucune image disponible")
             return
+
+        # Limiter selon la configuration
+        total_images = len(valid_images)
+
+        # Obtenir la limite d'images depuis la configuration ou les settings
+        max_images_limit = 6  # valeur par défaut
+        if config:
+            max_images_limit = config.ui.max_images_display
+
+        # Vérifier les settings de session pour override
+        if hasattr(st.session_state, 'settings') and 'max_images_display' in st.session_state.settings:
+            max_images_limit = st.session_state.settings['max_images_display']
+
+        display_images = valid_images[:max_images_limit]
         
         # Permettre à l'utilisateur d'ajuster la taille des images dans un expander compact
         col1, col2 = st.columns([1, 3])
@@ -613,16 +639,16 @@ def display_images(images, max_height=300, section_key=None, t=None, config=None
             max_height = size_map.get(selected_size, 300)
         
         # Configuration responsive - plus d'images par ligne sur petits écrans
-        # Maximum 3 colonnes, mais n'utilise pas plus de colonnes que d'images
-        display_cols = min(3, len(valid_images))
+        # Maximum 3 colonnes, mais n'utilise pas plus de colonnes que d'images affichées
+        display_cols = min(3, len(display_images))
         cols = st.columns(display_cols)
         
         # Variable pour stocker l'image sélectionnée pour affichage détaillé
         if f"selected_image_{section_key}" not in st.session_state:
             st.session_state[f"selected_image_{section_key}"] = None
         
-        # Afficher les images en grille
-        for i, img in enumerate(valid_images):
+        # Afficher les images en grille (max 6)
+        for i, img in enumerate(display_images):
             with cols[i % display_cols]:
                 # Conteneur pour l'image et les commandes
                 with st.container():
@@ -665,7 +691,12 @@ def display_images(images, max_height=300, section_key=None, t=None, config=None
                             }
                     except Exception as e:
                         st.error(f"Erreur d'affichage: {str(e)}")
-        
+
+        # Message informatif s'il y a plus d'images que la limite
+        if total_images > max_images_limit:
+            remaining = total_images - max_images_limit
+            st.caption(f"💡 {remaining} image{'s' if remaining > 1 else ''} supplémentaire{'s' if remaining > 1 else ''} disponible{'s' if remaining > 1 else ''}")
+
         # Afficher l'image détaillée si sélectionnée dans un modal-like container
         if st.session_state[f"selected_image_{section_key}"]:
             with st.container():
@@ -700,7 +731,7 @@ def display_images(images, max_height=300, section_key=None, t=None, config=None
                     st.error(f"Erreur d'affichage: {str(e)}")
 
 
-def display_tables(tables, t=None):
+def display_tables(tables, t=None, config=None):
     """Affiche les tableaux de façon formatée avec détection améliorée"""
     if not tables:
         return
@@ -720,94 +751,125 @@ def display_tables(tables, t=None):
         </style>
         """, unsafe_allow_html=True)
         
-        for i, table in enumerate(tables):
-            with st.expander(f"{t('table_label', i+1) if t else f'Tableau {i+1}'}", expanded=False):
-                # Récupérer le contenu du tableau
-                content = table.get('documents', "")
-                
-                # Fonction pour corriger les noms de colonnes dupliqués ou invalides
-                def fix_column_names(columns):
-                    if columns is None:
-                        return [f"Col_{i}" for i in range(20)]  # Noms génériques
-                    
-                    # Assurer que nous avons une liste
-                    cols = list(columns)
-                    
-                    # Remplacer les None par des noms génériques
-                    for i in range(len(cols)):
-                        if cols[i] is None or cols[i] == "":
-                            cols[i] = f"Col_{i}"
-                    
-                    # Gérer les doublons en ajoutant _1, _2, etc.
-                    seen = {}
-                    for i in range(len(cols)):
-                        if cols[i] in seen:
-                            seen[cols[i]] += 1
-                            cols[i] = f"{cols[i]}_{seen[cols[i]]}"
-                        else:
-                            seen[cols[i]] = 0
-                    
-                    return cols
-            
-            # Étape 1: Essayer d'extraire un tableau du texte
+        # Obtenir la limite de tableaux depuis la configuration ou les settings
+        max_tables_limit = 3  # valeur par défaut
+        if config:
+            max_tables_limit = config.ui.max_tables_display
+
+        # Vérifier les settings de session pour override
+        if hasattr(st.session_state, 'settings') and 'max_tables_display' in st.session_state.settings:
+            max_tables_limit = st.session_state.settings['max_tables_display']
+
+        # Affichage en grille pour les premiers tableaux selon la configuration
+        display_tables = tables[:max_tables_limit]
+
+        if len(display_tables) == 1:
+            # Un seul tableau, affichage normal
+            with st.expander(f"Tableau 1", expanded=False):
+                _render_table_content(display_tables[0], 1)
+        else:
+            # Affichage en grille (2 ou 3 tableaux max)
+            cols = st.columns(len(display_tables))
+            for i, table in enumerate(display_tables):
+                with cols[i]:
+                    with st.expander(f"Tableau {i+1}", expanded=False):
+                        _render_table_content(table, i+1)
+
+        # Message informatif s'il y a plus de tableaux que la limite
+        if total_tables > max_tables_limit:
+            remaining = total_tables - max_tables_limit
+            st.caption(f"💡 {remaining} tableau{'x' if remaining > 1 else ''} supplémentaire{'s' if remaining > 1 else ''} disponible{'s' if remaining > 1 else ''}")
+
+
+def _render_table_content(table, table_number):
+    """Fonction helper pour rendre le contenu d'un tableau"""
+    # Récupérer le contenu du tableau
+    content = table.get('documents', "")
+
+    # Fonction pour corriger les noms de colonnes dupliqués ou invalides
+    def fix_column_names(columns):
+        if columns is None:
+            return [f"Col_{i}" for i in range(20)]  # Noms génériques
+
+        # Assurer que nous avons une liste
+        cols = list(columns)
+
+        # Remplacer les None par des noms génériques
+        for i in range(len(cols)):
+            if cols[i] is None or cols[i] == "":
+                cols[i] = f"Col_{i}"
+
+        # Gérer les doublons en ajoutant _1, _2, etc.
+        seen = {}
+        for i in range(len(cols)):
+            if cols[i] in seen:
+                seen[cols[i]] += 1
+                cols[i] = f"{cols[i]}_{seen[cols[i]]}"
+            else:
+                seen[cols[i]] = 0
+
+        return cols
+
+    # Étape 1: Essayer d'extraire un tableau du texte
+    if isinstance(content, str):
+        df = extract_table_from_text(content)
+        if df is not None:
+            # Corriger les noms de colonnes
+            df.columns = fix_column_names(df.columns)
+            st.dataframe(df, width='stretch')
+            return
+
+    # Étape 2: Traiter différents formats de données structurées
+    try:
+        if isinstance(content, list) and all(isinstance(row, list) for row in content):
+            # Cas d'une matrice (liste de listes)
+            if content and len(content) > 0:
+                # Corriger les noms de colonnes
+                column_names = fix_column_names(content[0] if len(content) > 0 else None)
+                df = pd.DataFrame(content[1:], columns=column_names)
+                st.dataframe(df, width='stretch')
+            else:
+                st.write(t('empty_table'))
+        elif isinstance(content, list) and all(isinstance(row, dict) for row in content):
+            # Cas d'une liste de dictionnaires
+            df = pd.DataFrame(content)
+            st.dataframe(df, width='stretch')
+        else:
+            # Si le contenu est une chaîne, essayer de l'analyser comme un tableau
             if isinstance(content, str):
-                df = extract_table_from_text(content)
-                if df is not None:
-                    # Corriger les noms de colonnes
-                    df.columns = fix_column_names(df.columns)
-                    st.dataframe(df, width='stretch')
-                    continue
-            
-            # Étape 2: Traiter différents formats de données structurées
-            try:
-                if isinstance(content, list) and all(isinstance(row, list) for row in content):
-                    # Cas d'une matrice (liste de listes)
-                    if content and len(content) > 0:
-                        # Corriger les noms de colonnes
-                        column_names = fix_column_names(content[0] if len(content) > 0 else None)
-                        df = pd.DataFrame(content[1:], columns=column_names)
-                        st.dataframe(df, width='stretch')
-                    else:
-                        st.write("Tableau vide")
-                elif isinstance(content, list) and all(isinstance(row, dict) for row in content):
-                    # Cas d'une liste de dictionnaires
-                    df = pd.DataFrame(content)
-                    st.dataframe(df, width='stretch')
-                else:
-                    # Si le contenu est une chaîne, essayer de l'analyser comme un tableau
-                    if isinstance(content, str):
-                        # Rechercher des patterns qui ressemblent à des tableaux
-                        if '|' in content or '\t' in content:
-                            # Tentative de splitting et nettoyage
-                            lines = [line.strip() for line in content.split('\n') if line.strip()]
-                            if lines:
-                                rows = []
-                                for line in lines:
-                                    if '|' in line:
-                                        cells = [cell.strip() for cell in line.split('|')]
-                                    else:
-                                        cells = [cell.strip() for cell in line.split('\t')]
-                                    rows.append(cells)
-                                
-                                if rows and len(rows) > 0:
-                                    # Corriger les noms de colonnes
-                                    column_names = fix_column_names(rows[0] if len(rows) > 0 else None)
-                                    df = pd.DataFrame(rows[1:], columns=column_names)
-                                    st.dataframe(df, width='stretch')
-                                    continue
-                        
-                        # Si toutes les tentatives échouent, afficher tel quel mais avec un format amélioré
-                        st.markdown(f"```\n{content}\n```")
-                    else:
-                        # Dernier recours: afficher tel quel
-                        st.write(content)
-            except Exception as e:
-                # En cas d'erreur, afficher le contenu brut et l'erreur
-                st.error(f"Erreur de tableau: {str(e)}")
-                st.code(str(content))
-                # Afficher plus de détails sur l'erreur pour le débogage
-                with st.expander("Détails de l'erreur", expanded=False):
-                    st.exception(e)
+                # Rechercher des patterns qui ressemblent à des tableaux
+                if '|' in content or '\t' in content:
+                    # Tentative de splitting et nettoyage
+                    lines = [line.strip() for line in content.split('\n') if line.strip()]
+                    if lines:
+                        rows = []
+                        for line in lines:
+                            if '|' in line:
+                                cells = [cell.strip() for cell in line.split('|')]
+                            else:
+                                cells = [cell.strip() for cell in line.split('\t')]
+                            rows.append(cells)
+
+                        if rows and len(rows) > 0:
+                            # Corriger les noms de colonnes
+                            column_names = fix_column_names(rows[0] if len(rows) > 0 else None)
+                            df = pd.DataFrame(rows[1:], columns=column_names)
+                            st.dataframe(df, width='stretch')
+                            return
+
+                # Si toutes les tentatives échouent, afficher tel quel mais avec un format amélioré
+                st.markdown(f"```\n{content}\n```")
+            else:
+                # Dernier recours: afficher tel quel
+                st.write(content)
+    except Exception as e:
+        # En cas d'erreur, afficher le contenu brut et l'erreur
+        st.error(f"Erreur de tableau: {str(e)}")
+        st.code(str(content))
+        # Afficher plus de détails sur l'erreur pour le débogage
+        with st.expander("Détails de l'erreur", expanded=False):
+            st.exception(e)
+
 
 
 def stream_assistant_response(orchestrator, query, settings, t):

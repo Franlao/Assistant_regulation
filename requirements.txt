@@ -46,6 +46,11 @@ sentence-transformers==5.0.0
 
 # === Text Processing (essential for chunking) ===
 chonkie[st]==1.1.2
+# === Desktop Application ===
+pywebview==5.4
+psutil==6.1.1
+pyinstaller==6.12.0
+
 # === Testing ===
 pytest==8.2.2
 pytest-mock==3.14.0

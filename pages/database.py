@@ -13,6 +13,7 @@ from utils.session_utils import initialize_session_state
 from components.modern_auth_integration import require_modern_admin_access
 from utils.task_manager import get_task_manager, async_upload_files, async_folder_ingestion
 from components.task_monitor import render_task_monitor, render_task_notifications, render_task_status_bar
+from translations import t
 
 # Import des managers Database
 try:
@@ -41,9 +42,9 @@ except ImportError as e:
 
 def render_database_status():
     """Affiche l'état actuel de la base de données"""
-    st.markdown("""
+    st.markdown(f"""
     <div style="padding: 2rem 0;">
-        <h2 style="color: #343a40; font-weight: 360; font-size: 2rem; margin: 0;">État de la Base de Données</h2>
+        <h2 style="color: #343a40; font-weight: 360; font-size: 2rem; margin: 0;">{t('database_status')}</h2>
     </div>
     """, unsafe_allow_html=True)
     
@@ -248,9 +249,9 @@ def _render_database_status_fallback():
 def render_pdf_ingestion():
     """Interface d'ingestion de PDFs avec support asynchrone"""
     #st.subheader("Ingestion de Documents PDF")
-    st.markdown("""
+    st.markdown(f"""
     <div style="padding: 2rem 0;">
-        <h2 style="color: #343a40; font-weight: 360; font-size: 2rem; margin: 0;">Ingestion de Documents PDF</h2>
+        <h2 style="color: #343a40; font-weight: 360; font-size: 2rem; margin: 0;">{t('pdf_documents_ingestion')}</h2>
     </div>
     """, unsafe_allow_html=True)
     # Moniteur des tâches en cours avec rafraîchissement automatique
@@ -276,17 +277,17 @@ def render_pdf_ingestion():
                 st.session_state.last_auto_refresh = time.time()
                 st.rerun()
     
-    tab1, tab2, tab3 = st.tabs(["Upload Fichiers", "Dossier Local", "Historique"])
+    tab1, tab2, tab3 = st.tabs([t('upload_files'), t('local_folder'), t('history')])
     
     with tab1:
-        st.markdown("**Upload et traitement asynchrone de fichiers PDF**")
+        st.markdown(f"**{t('async_pdf_upload_title')}**")
         
         # Upload de fichiers
         uploaded_files = st.file_uploader(
-            "Sélectionner des fichiers PDF",
+            t('select_pdf_files'),
             type=['pdf'],
             accept_multiple_files=True,
-            help="Vous pouvez sélectionner plusieurs fichiers PDF à traiter"
+            help=t('select_multiple_pdf_help')
         )
         
         if uploaded_files:
@@ -348,7 +349,7 @@ def render_pdf_ingestion():
                     process_folder_files_ingestion(folder_files, text_only_folder, parallel, workers)
     
     with tab3:
-        st.markdown("**Historique des tâches d'ingestion**")
+        st.markdown(f"**{t('ingestion_tasks_history')}**")
         render_task_monitor(show_completed=True, max_tasks=50, key_prefix="ingestion_history")
 
 
@@ -1060,11 +1061,11 @@ def main():
     
     # Navigation par onglets
     tab1, tab2, tab3, tab4, tab5 = st.tabs([
-        "Ingestion",
-        "Résumé",
-        "Recherche",
-        "Liste",
-        "Nettoyage"
+        t('ingestion'),
+        t('summary'),
+        t('search'),
+        t('list'),
+        t('cleanup')
     ])
     
     with tab1:

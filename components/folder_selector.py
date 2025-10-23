@@ -7,6 +7,7 @@ import streamlit as st
 import os
 from pathlib import Path
 from typing import Optional
+from translations import t
 
 
 def st_folder_picker(
@@ -69,7 +70,7 @@ def st_folder_picker(
                 state['selected_path'] = os.path.abspath(manual_path)
                 state['current_path'] = os.path.abspath(manual_path)
             else:
-                st.error("Dossier inexistant")
+                st.error(t('folder_not_exist'))
     
     with col2:
         if st.button("Parcourir", key=f"{key}_browse_btn", help="Ouvrir le navigateur de dossiers"):
@@ -104,7 +105,7 @@ def st_folder_picker(
             return selected_path
             
         except PermissionError:
-            st.error("Accès refusé à ce dossier")
+            st.error(t('folder_access_denied'))
         except Exception as e:
             st.error(f"Erreur lors de la lecture du dossier: {e}")
     
@@ -160,7 +161,7 @@ def _render_folder_browser(state: dict, key: str):
                             state['current_path'] = str(folder)
                             st.rerun()
         else:
-            st.info("Aucun sous-dossier trouvé")
+            st.info(t('no_subfolders_found'))
         
         # Bouton pour sélectionner le dossier actuel
         st.markdown("---")
@@ -247,7 +248,7 @@ def st_folder_picker_simple(
                 pdf_count = len([f for f in os.listdir(folder_path) if f.lower().endswith('.pdf')])
                 st.success(f"Dossier valide - {pdf_count} fichiers PDF")
             except Exception:
-                st.warning("Dossier valide mais inaccessible")
+                st.warning(t('folder_valid_but_inaccessible'))
         else:
             st.error("Dossier inexistant")
     
@@ -256,9 +257,9 @@ def st_folder_picker_simple(
 
 # Exemple d'utilisation
 if __name__ == "__main__":
-    st.title("Test Folder Picker")
+    st.title(t('test_folder_picker'))
     
-    st.subheader("Version complète avec navigateur")
+    st.subheader(t('full_version_with_browser'))
     selected = st_folder_picker(
         label="Sélectionner le dossier de données",
         initial_path="./Data",
@@ -270,7 +271,7 @@ if __name__ == "__main__":
     
     st.divider()
     
-    st.subheader("Version simplifiée")
+    st.subheader(t('simplified_version'))
     simple_path = st_folder_picker_simple(
         label="Dossier de travail",
         default_path="./Data"
