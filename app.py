@@ -15,6 +15,7 @@ from pages.database import (
     render_user_management
 )
 from pages.summary import main as render_summary_page
+from pages.about import main as render_about_page
 from utils.session_utils import initialize_session_state
 from components.modern_auth_integration import require_modern_authentication, require_modern_admin_access, render_modern_sidebar_user_info, render_dedicated_login_page
 from translations import get_text, t, _, init_i18n, add_language_selector
@@ -439,16 +440,19 @@ apply_page_specific_styles()
 # Contenu principal basé sur la page sélectionnée
 if st.session_state.selected_page == "Chat":
     render_main_content(t, config)
-    
+
 elif st.session_state.selected_page == "Summary":
     render_summary_page()
-    
+
+elif st.session_state.selected_page == "About":
+    render_about_page()
+
 elif st.session_state.selected_page == "Configuration":
     render_configuration_page(t, config)
-    
+
 elif st.session_state.selected_page == "Database":
     render_database_page(t, config)
-    
+
 elif st.session_state.selected_page == "Login":
     render_dedicated_login_page()
 
