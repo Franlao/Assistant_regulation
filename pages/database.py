@@ -1217,7 +1217,7 @@ def render_user_management():
                     # Bouton pour changer le rôle
                     new_role = "admin" if role == "user" else "user"
                     if st.button(f"→ {new_role.upper()}", key=f"role_{username}_{idx}",
-                                help=f"Changer le rôle vers {new_role}"):
+                                type="secondary", help=f"Changer le rôle vers {new_role}"):
                         success, message = auth.update_user_role(username, new_role)
                         if success:
                             st.success(message)
