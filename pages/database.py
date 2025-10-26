@@ -1123,7 +1123,7 @@ def render_user_management():
     auth = SimpleAuth()
 
     # Section 1: Créer un nouvel utilisateur
-    st.markdown("### ➕ Créer un utilisateur")
+    st.markdown("### Créer un utilisateur")
     with st.form("create_user_form"):
         col1, col2 = st.columns(2)
 
@@ -1136,7 +1136,7 @@ def render_user_management():
                                    help="Admin: accès complet | User: accès limité")
             st.markdown("<br>", unsafe_allow_html=True)
 
-        submitted = st.form_submit_button("✅ Créer l'utilisateur", type="primary", use_container_width=True)
+        submitted = st.form_submit_button("Créer l'utilisateur", type="primary", use_container_width=True)
 
         if submitted:
             if new_username and new_password:
@@ -1152,7 +1152,7 @@ def render_user_management():
     st.divider()
 
     # Section 2: Liste des utilisateurs existants
-    st.markdown("### 👥 Utilisateurs existants")
+    st.markdown("### Utilisateurs existants")
 
     users = auth.list_users()
 
@@ -1194,15 +1194,15 @@ def render_user_management():
                 with col1:
                     # Badge avec icône selon le rôle
                     if role == 'admin':
-                        st.markdown(f"**👑 {username}**")
+                        st.markdown(f"**{username}**")
                     else:
-                        st.markdown(f"**👤 {username}**")
+                        st.markdown(f"**{username}**")
 
                 with col2:
                     if role == 'admin':
-                        st.markdown("🔴 `ADMIN`")
+                        st.markdown("`ADMIN`")
                     else:
-                        st.markdown("🔵 `USER`")
+                        st.markdown("`USER`")
 
                 with col3:
                     # Formater la date
@@ -1227,7 +1227,7 @@ def render_user_management():
 
                 with col5:
                     # Bouton pour supprimer
-                    if st.button("🗑️ Suppr.", key=f"delete_{username}_{idx}",
+                    if st.button("Supprimer", key=f"delete_{username}_{idx}",
                                 type="secondary", help=f"Supprimer {username}"):
                         success, message = auth.delete_user(username)
                         if success:
@@ -1241,7 +1241,7 @@ def render_user_management():
     st.divider()
 
     # Section 3: Réinitialiser le mot de passe
-    st.markdown("### 🔑 Réinitialiser un mot de passe")
+    st.markdown("### Réinitialiser un mot de passe")
 
     if users:
         with st.form("reset_password_form"):
@@ -1258,7 +1258,7 @@ def render_user_management():
                 new_pwd = st.text_input("Nouveau mot de passe", type="password",
                                        placeholder="Minimum 6 caractères")
 
-            reset_submitted = st.form_submit_button("🔄 Réinitialiser le mot de passe",
+            reset_submitted = st.form_submit_button("Réinitialiser le mot de passe",
                                                    type="primary", use_container_width=True)
 
             if reset_submitted:
@@ -1276,7 +1276,7 @@ def render_user_management():
     # Avertissement de sécurité
     st.divider()
     st.warning("""
-    **⚠️ Consignes de sécurité:**
+    **Consignes de sécurité:**
     - Ne supprimez jamais le dernier administrateur
     - Utilisez des mots de passe forts (minimum 6 caractères)
     - Changez régulièrement les mots de passe par défaut
