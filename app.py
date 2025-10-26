@@ -377,7 +377,7 @@ def render_database_page(t, config):
         t('search'),
         t('list'),
         t('cleanup'),
-        "👥 Utilisateurs"
+        "Utilisateurs"
     ])
 
     with tab1:
