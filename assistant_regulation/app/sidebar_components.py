@@ -269,12 +269,13 @@ def render_sidebar(config, t, session_state):
     page_translations = {
         "Chat": t('chat'),
         "Summary": t('summary'),
+        "About": t('about'),
         "Configuration": t('configuration'),
         "Database": t('database'),
         "Login": t('login')
     }
 
-    available_pages = ["Chat", "Summary", "Configuration", "Database", "Login"]
+    available_pages = ["Chat", "Summary", "About", "Configuration", "Database", "Login"]
     translated_page_names = [page_translations[page] for page in available_pages]
 
     # Initialiser la page sélectionnée
@@ -301,6 +302,7 @@ def render_sidebar(config, t, session_state):
     page_descriptions = {
         "Chat": t('chat_description'),
         "Summary": t('summary_description'),
+        "About": t('about_description'),
         "Configuration": t('configuration_description'),
         "Database": t('database_description'),
         "Login": t('login_description')
