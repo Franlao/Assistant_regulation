@@ -1,21 +1,17 @@
 # Dossier Vidéos
 
-Ce dossier contient les vidéos utilisées dans l'application.
+Ce dossier peut contenir des ressources vidéo pour l'application.
 
 ## Vidéo de présentation
 
-Pour ajouter la vidéo de présentation dans la page "À propos" :
+La vidéo de présentation du projet est hébergée sur **YouTube** pour de meilleures performances et une distribution optimale.
 
-1. Placez votre fichier vidéo MP4 dans ce dossier
-2. Renommez-le en `presentation.mp4`
-3. La vidéo sera automatiquement détectée et affichée
+**URL actuelle :** https://youtu.be/AM50pVSx4Mg
 
-**Chemin attendu :** `assets/videos/presentation.mp4`
+**Intégration :** La vidéo est automatiquement intégrée dans la page "À propos" via un iframe YouTube.
 
-**Format supporté :** MP4 (H.264)
+Pour modifier la vidéo affichée, éditez le fichier `pages/about.py` et changez la variable `video_id`.
 
-**Taille recommandée :** Maximum 100 MB pour de meilleures performances
+## Autres ressources
 
-## Autres vidéos
-
-Vous pouvez ajouter d'autres vidéos dans ce dossier pour de futures fonctionnalités.
+Ce dossier peut être utilisé pour stocker d'autres ressources vidéo locales si nécessaire.
