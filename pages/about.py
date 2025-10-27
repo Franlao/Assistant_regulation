@@ -3,8 +3,6 @@ Page À propos - Présentation du projet Assistant Réglementaire
 """
 
 import streamlit as st
-import os
-from pathlib import Path
 
 
 def main():
@@ -40,43 +38,24 @@ def main():
     # Section 2 : Vidéo explicative
     st.markdown("### Vidéo de présentation")
 
-    video_path = Path("assets/videos/presentation.mp4")
+    st.markdown("""
+    Découvrez le fonctionnement de l'Assistant Réglementaire à travers cette vidéo explicative.
+    """)
 
-    if video_path.exists():
-        # Lecteur vidéo HTML5
-        video_file = open(video_path, 'rb')
-        video_bytes = video_file.read()
-        st.video(video_bytes)
-    else:
-        # Placeholder si la vidéo n'est pas encore disponible
-        st.info("""
-        **Vidéo de présentation à venir**
+    # Intégration YouTube
+    video_id = "AM50pVSx4Mg"
 
-        Pour ajouter votre vidéo :
-        1. Placez votre fichier MP4 dans le dossier `assets/videos/`
-        2. Renommez-le en `presentation.mp4`
-        3. Rechargez la page
-
-        Chemin attendu : `assets/videos/presentation.mp4`
-        """)
-
-        # Afficher un placeholder visuel
-        st.markdown("""
-        <div style="
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 10px;
-            padding: 4rem 2rem;
-            text-align: center;
-            color: white;
-            margin: 2rem 0;
-        ">
-            <div style="font-size: 3rem; margin-bottom: 1rem;">🎬</div>
-            <div style="font-size: 1.2rem; font-weight: 500;">Vidéo explicative</div>
-            <div style="font-size: 0.9rem; opacity: 0.9; margin-top: 0.5rem;">
-                Découvrez comment utiliser l'Assistant Réglementaire
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+    st.markdown(f"""
+    <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; margin: 2rem 0;">
+        <iframe
+            style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);"
+            src="https://www.youtube.com/embed/{video_id}"
+            frameborder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen>
+        </iframe>
+    </div>
+    """, unsafe_allow_html=True)
 
     st.divider()
 
