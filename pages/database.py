@@ -14,6 +14,8 @@ from components.modern_auth_integration import require_modern_admin_access
 from utils.task_manager import get_task_manager, async_upload_files, async_folder_ingestion
 from components.task_monitor import render_task_monitor, render_task_notifications, render_task_status_bar
 from translations import t
+from components.auth_components import SimpleAuth
+from datetime import datetime
 
 # Import des managers Database
 try:
@@ -1108,6 +1110,179 @@ def main():
         - Nettoyez le cache périodiquement
         - Optimisez le nombre de workers selon votre CPU
         """)
+
+
+def render_user_management():
+    """Affiche l'interface de gestion des utilisateurs (Admin uniquement)"""
+    st.markdown("""
+    <div style="padding: 1rem 0;">
+        <h2 style="color: #343a40; font-weight: 360; font-size: 1.5rem; margin: 0;">Gestion des Utilisateurs</h2>
+        <p style="color: #6c757d; font-size: 0.9rem;">Créer, modifier et supprimer des comptes utilisateurs</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    auth = SimpleAuth()
+
+    # Section 1: Créer un nouvel utilisateur
+    st.markdown("### Créer un utilisateur")
+    with st.form("create_user_form"):
+        col1, col2 = st.columns(2)
+
+        with col1:
+            new_username = st.text_input("Nom d'utilisateur", placeholder="Minimum 3 caractères")
+            new_password = st.text_input("Mot de passe", type="password", placeholder="Minimum 6 caractères")
+
+        with col2:
+            new_role = st.selectbox("Rôle", options=["user", "admin"],
+                                   help="Admin: accès complet | User: accès limité")
+            st.markdown("<br>", unsafe_allow_html=True)
+
+        submitted = st.form_submit_button("Créer l'utilisateur", type="primary", use_container_width=True)
+
+        if submitted:
+            if new_username and new_password:
+                success, message = auth.create_user(new_username, new_password, new_role)
+                if success:
+                    st.success(message)
+                    st.rerun()
+                else:
+                    st.error(message)
+            else:
+                st.error("Veuillez remplir tous les champs")
+
+    st.divider()
+
+    # Section 2: Liste des utilisateurs existants
+    st.markdown("### Utilisateurs existants")
+
+    users = auth.list_users()
+
+    if not users:
+        st.info("Aucun utilisateur trouvé")
+    else:
+        # Afficher le nombre total
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("Total utilisateurs", len(users))
+        with col2:
+            admin_count = sum(1 for u in users if u[1] == 'admin')
+            st.metric("Administrateurs", admin_count)
+        with col3:
+            user_count = sum(1 for u in users if u[1] == 'user')
+            st.metric("Utilisateurs", user_count)
+
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        # Créer un DataFrame pour l'affichage
+        users_data = []
+        for username, role, created_at in users:
+            users_data.append({
+                "Utilisateur": username,
+                "Rôle": role.upper(),
+                "Créé le": created_at,
+                "Actions": username  # Pour la colonne actions
+            })
+
+        df = pd.DataFrame(users_data)
+
+        # Afficher chaque utilisateur avec des actions
+        for idx, user in enumerate(users):
+            username, role, created_at = user
+
+            with st.container():
+                col1, col2, col3, col4, col5 = st.columns([3, 2, 3, 2, 2])
+
+                with col1:
+                    # Badge avec icône selon le rôle
+                    if role == 'admin':
+                        st.markdown(f"**{username}**")
+                    else:
+                        st.markdown(f"**{username}**")
+
+                with col2:
+                    if role == 'admin':
+                        st.markdown("`ADMIN`")
+                    else:
+                        st.markdown("`USER`")
+
+                with col3:
+                    # Formater la date
+                    try:
+                        date_obj = datetime.strptime(created_at, "%Y-%m-%d %H:%M:%S")
+                        formatted_date = date_obj.strftime("%d/%m/%Y %H:%M")
+                    except:
+                        formatted_date = created_at
+                    st.text(formatted_date)
+
+                with col4:
+                    # Bouton pour changer le rôle
+                    new_role = "admin" if role == "user" else "user"
+                    if st.button(f"→ {new_role.upper()}", key=f"role_{username}_{idx}",
+                                type="secondary", help=f"Changer le rôle vers {new_role}"):
+                        success, message = auth.update_user_role(username, new_role)
+                        if success:
+                            st.success(message)
+                            st.rerun()
+                        else:
+                            st.error(message)
+
+                with col5:
+                    # Bouton pour supprimer
+                    if st.button("Supprimer", key=f"delete_{username}_{idx}",
+                                type="secondary", help=f"Supprimer {username}"):
+                        success, message = auth.delete_user(username)
+                        if success:
+                            st.success(message)
+                            st.rerun()
+                        else:
+                            st.error(message)
+
+                st.markdown("<hr style='margin: 0.5rem 0; opacity: 0.2;'>", unsafe_allow_html=True)
+
+    st.divider()
+
+    # Section 3: Réinitialiser le mot de passe
+    st.markdown("### Réinitialiser un mot de passe")
+
+    if users:
+        with st.form("reset_password_form"):
+            col1, col2 = st.columns(2)
+
+            with col1:
+                user_to_reset = st.selectbox(
+                    "Sélectionner un utilisateur",
+                    options=[u[0] for u in users],
+                    help="Choisir l'utilisateur dont le mot de passe sera réinitialisé"
+                )
+
+            with col2:
+                new_pwd = st.text_input("Nouveau mot de passe", type="password",
+                                       placeholder="Minimum 6 caractères")
+
+            reset_submitted = st.form_submit_button("Réinitialiser le mot de passe",
+                                                   type="primary", use_container_width=True)
+
+            if reset_submitted:
+                if user_to_reset and new_pwd:
+                    success, message = auth.reset_password(user_to_reset, new_pwd)
+                    if success:
+                        st.success(message)
+                    else:
+                        st.error(message)
+                else:
+                    st.error("Veuillez remplir tous les champs")
+    else:
+        st.info("Aucun utilisateur disponible")
+
+    # Avertissement de sécurité
+    st.divider()
+    st.warning("""
+    **Consignes de sécurité:**
+    - Ne supprimez jamais le dernier administrateur
+    - Utilisez des mots de passe forts (minimum 6 caractères)
+    - Changez régulièrement les mots de passe par défaut
+    - Auditez régulièrement les comptes utilisateurs
+    """)
 
 
 if __name__ == "__main__":

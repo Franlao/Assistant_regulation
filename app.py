@@ -11,9 +11,11 @@ from pages.configuration import (
 )
 from pages.database import (
     render_database_status, render_pdf_ingestion, render_database_summary,
-    render_regulation_search, render_regulations_list, render_database_cleanup
+    render_regulation_search, render_regulations_list, render_database_cleanup,
+    render_user_management
 )
 from pages.summary import main as render_summary_page
+from pages.about import main as render_about_page
 from utils.session_utils import initialize_session_state
 from components.modern_auth_integration import require_modern_authentication, require_modern_admin_access, render_modern_sidebar_user_info, render_dedicated_login_page
 from translations import get_text, t, _, init_i18n, add_language_selector
@@ -370,28 +372,32 @@ def render_database_page(t, config):
     st.divider()
     
     # Navigation par onglets
-    tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
         t('ingestion'),
         t('summary'),
         t('search'),
         t('list'),
-        t('cleanup')
+        t('cleanup'),
+        "Utilisateurs"
     ])
-    
+
     with tab1:
         render_pdf_ingestion()
-    
+
     with tab2:
         render_database_summary()
-    
+
     with tab3:
         render_regulation_search()
-    
+
     with tab4:
         render_regulations_list()
-    
+
     with tab5:
         render_database_cleanup()
+
+    with tab6:
+        render_user_management()
     
     # Footer avec le même style
     st.markdown("<br>", unsafe_allow_html=True)
@@ -434,16 +440,19 @@ apply_page_specific_styles()
 # Contenu principal basé sur la page sélectionnée
 if st.session_state.selected_page == "Chat":
     render_main_content(t, config)
-    
+
 elif st.session_state.selected_page == "Summary":
     render_summary_page()
-    
+
+elif st.session_state.selected_page == "About":
+    render_about_page()
+
 elif st.session_state.selected_page == "Configuration":
     render_configuration_page(t, config)
-    
+
 elif st.session_state.selected_page == "Database":
     render_database_page(t, config)
-    
+
 elif st.session_state.selected_page == "Login":
     render_dedicated_login_page()
 

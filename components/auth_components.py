@@ -108,23 +108,230 @@ class SimpleAuth:
             # Vérifier l'ancien mot de passe
             if not self.authenticate(username, old_password):
                 return False
-            
+
             conn = sqlite3.connect(str(self.db_path))
             cursor = conn.cursor()
-            
+
             new_password_hash = self._hash_password(new_password)
             cursor.execute(
                 "UPDATE users SET password_hash = ? WHERE username = ?",
                 (new_password_hash, username)
             )
-            
+
             conn.commit()
             conn.close()
             return True
-            
+
         except Exception as e:
             st.error(f"Erreur de changement de mot de passe: {e}")
             return False
+
+    def create_user(self, username: str, password: str, role: str = "user") -> Tuple[bool, str]:
+        """
+        Crée un nouvel utilisateur
+
+        Args:
+            username: Nom d'utilisateur (unique)
+            password: Mot de passe (minimum 6 caractères)
+            role: Rôle de l'utilisateur ('admin' ou 'user')
+
+        Returns:
+            Tuple (succès: bool, message: str)
+        """
+        try:
+            # Validations
+            if not username or not password:
+                return False, "Le nom d'utilisateur et le mot de passe sont requis"
+
+            if len(username) < 3:
+                return False, "Le nom d'utilisateur doit contenir au moins 3 caractères"
+
+            if len(password) < 6:
+                return False, "Le mot de passe doit contenir au moins 6 caractères"
+
+            if role not in ['admin', 'user']:
+                return False, "Le rôle doit être 'admin' ou 'user'"
+
+            conn = sqlite3.connect(str(self.db_path))
+            cursor = conn.cursor()
+
+            # Vérifier si l'utilisateur existe déjà
+            cursor.execute("SELECT username FROM users WHERE username = ?", (username,))
+            if cursor.fetchone():
+                conn.close()
+                return False, f"L'utilisateur '{username}' existe déjà"
+
+            # Créer l'utilisateur
+            password_hash = self._hash_password(password)
+            cursor.execute(
+                "INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)",
+                (username, password_hash, role)
+            )
+
+            conn.commit()
+            conn.close()
+            return True, f"Utilisateur '{username}' créé avec succès"
+
+        except Exception as e:
+            return False, f"Erreur lors de la création de l'utilisateur: {e}"
+
+    def list_users(self) -> list:
+        """
+        Liste tous les utilisateurs
+
+        Returns:
+            Liste de tuples (username, role, created_at)
+        """
+        try:
+            conn = sqlite3.connect(str(self.db_path))
+            cursor = conn.cursor()
+
+            cursor.execute("SELECT username, role, created_at FROM users ORDER BY created_at DESC")
+            users = cursor.fetchall()
+            conn.close()
+
+            return users
+
+        except Exception as e:
+            st.error(f"Erreur de récupération des utilisateurs: {e}")
+            return []
+
+    def delete_user(self, username: str) -> Tuple[bool, str]:
+        """
+        Supprime un utilisateur
+
+        Args:
+            username: Nom de l'utilisateur à supprimer
+
+        Returns:
+            Tuple (succès: bool, message: str)
+        """
+        try:
+            if not username:
+                return False, "Le nom d'utilisateur est requis"
+
+            # Empêcher la suppression du dernier admin
+            conn = sqlite3.connect(str(self.db_path))
+            cursor = conn.cursor()
+
+            # Vérifier si c'est un admin
+            cursor.execute("SELECT role FROM users WHERE username = ?", (username,))
+            result = cursor.fetchone()
+
+            if not result:
+                conn.close()
+                return False, f"L'utilisateur '{username}' n'existe pas"
+
+            if result[0] == 'admin':
+                # Compter le nombre d'admins
+                cursor.execute("SELECT COUNT(*) FROM users WHERE role = 'admin'")
+                admin_count = cursor.fetchone()[0]
+
+                if admin_count <= 1:
+                    conn.close()
+                    return False, "Impossible de supprimer le dernier administrateur"
+
+            # Supprimer l'utilisateur
+            cursor.execute("DELETE FROM users WHERE username = ?", (username,))
+            conn.commit()
+            conn.close()
+
+            return True, f"Utilisateur '{username}' supprimé avec succès"
+
+        except Exception as e:
+            return False, f"Erreur lors de la suppression de l'utilisateur: {e}"
+
+    def update_user_role(self, username: str, new_role: str) -> Tuple[bool, str]:
+        """
+        Met à jour le rôle d'un utilisateur
+
+        Args:
+            username: Nom de l'utilisateur
+            new_role: Nouveau rôle ('admin' ou 'user')
+
+        Returns:
+            Tuple (succès: bool, message: str)
+        """
+        try:
+            if not username:
+                return False, "Le nom d'utilisateur est requis"
+
+            if new_role not in ['admin', 'user']:
+                return False, "Le rôle doit être 'admin' ou 'user'"
+
+            conn = sqlite3.connect(str(self.db_path))
+            cursor = conn.cursor()
+
+            # Vérifier que l'utilisateur existe et récupérer son rôle actuel
+            cursor.execute("SELECT role FROM users WHERE username = ?", (username,))
+            result = cursor.fetchone()
+
+            if not result:
+                conn.close()
+                return False, f"L'utilisateur '{username}' n'existe pas"
+
+            current_role = result[0]
+
+            # Empêcher la rétrogradation du dernier admin
+            if current_role == 'admin' and new_role != 'admin':
+                cursor.execute("SELECT COUNT(*) FROM users WHERE role = 'admin'")
+                admin_count = cursor.fetchone()[0]
+
+                if admin_count <= 1:
+                    conn.close()
+                    return False, "Impossible de rétrograder le dernier administrateur"
+
+            # Mettre à jour le rôle
+            cursor.execute("UPDATE users SET role = ? WHERE username = ?", (new_role, username))
+            conn.commit()
+            conn.close()
+
+            return True, f"Rôle de '{username}' mis à jour vers '{new_role}'"
+
+        except Exception as e:
+            return False, f"Erreur lors de la mise à jour du rôle: {e}"
+
+    def reset_password(self, username: str, new_password: str) -> Tuple[bool, str]:
+        """
+        Réinitialise le mot de passe d'un utilisateur (admin uniquement)
+
+        Args:
+            username: Nom de l'utilisateur
+            new_password: Nouveau mot de passe
+
+        Returns:
+            Tuple (succès: bool, message: str)
+        """
+        try:
+            if not username or not new_password:
+                return False, "Le nom d'utilisateur et le mot de passe sont requis"
+
+            if len(new_password) < 6:
+                return False, "Le mot de passe doit contenir au moins 6 caractères"
+
+            conn = sqlite3.connect(str(self.db_path))
+            cursor = conn.cursor()
+
+            # Vérifier que l'utilisateur existe
+            cursor.execute("SELECT username FROM users WHERE username = ?", (username,))
+            if not cursor.fetchone():
+                conn.close()
+                return False, f"L'utilisateur '{username}' n'existe pas"
+
+            # Réinitialiser le mot de passe
+            new_password_hash = self._hash_password(new_password)
+            cursor.execute(
+                "UPDATE users SET password_hash = ? WHERE username = ?",
+                (new_password_hash, username)
+            )
+
+            conn.commit()
+            conn.close()
+
+            return True, f"Mot de passe de '{username}' réinitialisé avec succès"
+
+        except Exception as e:
+            return False, f"Erreur lors de la réinitialisation du mot de passe: {e}"
 
 
 def render_login_form() -> bool:
