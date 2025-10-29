@@ -46,6 +46,10 @@ sentence-transformers==5.0.0
 
 # === Text Processing (essential for chunking) ===
 chonkie[st]==1.1.2
+
+# === PDF Export ===
+reportlab==4.2.5
+
 # === Desktop Application ===
 pywebview==5.4
 psutil==6.1.1

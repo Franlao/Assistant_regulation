@@ -124,6 +124,14 @@ python -c "from assistant_regulation.processing.Modul_Process.clean_cache import
 python -c "from config import get_config; config = get_config(); print('Ollama models:', config.llm.ollama_models); print('Mistral models:', config.llm.mistral_models)"
 ```
 
+### PDF Export Testing
+```bash
+# Test PDF export with sample data (ReportLab)
+python -m assistant_regulation.planning.services.pdf_export_reportlab
+
+# The test will generate a PDF in ./test_pdf/test_R107_reportlab.pdf
+```
+
 ## Configuration System
 
 The application uses a centralized configuration system:
@@ -141,16 +149,23 @@ Key configuration areas:
 
 The project uses modern Python libraries:
 - **Core**: `streamlit`, `langchain`, `chromadb`, `sentence-transformers`
-- **Document processing**: `PyMuPDF`, `chonkie`, `pdfplumber` 
+- **Document processing**: `PyMuPDF`, `chonkie`, `pdfplumber`
 - **LLM providers**: `ollama`, `mistralai`
 - **Performance**: `joblib` caching, `psutil` monitoring
-- **Export**: `reportlab`, `weasyprint`, `python-docx`
+- **Export**: `reportlab` (PDF export), `python-docx` (Word export)
 
-### Installation Note
+### Installation Notes
+
 The chunking system requires chonkie with streamlit support:
 ```bash
 pip install 'chonkie[st]'
 ```
+
+**PDF Export**: The system uses ReportLab for professional PDF export of summaries:
+- Pure Python library (no system dependencies required)
+- Compatible with all platforms including Railway
+- Generates publication-quality PDFs with headers, footers, and tables
+- Alternative to LaTeX-based solutions (WeasyPrint requires GTK on Windows)
 
 ## Database and Storage
 

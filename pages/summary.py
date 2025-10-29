@@ -356,9 +356,36 @@ def render_current_summary():
     """, unsafe_allow_html=True)
     
     # Actions modernes
-    col1, col2 = st.columns([3, 1])
-    
+    col1, col2, col3 = st.columns([2, 1, 1])
+
     with col2:
+        # Bouton d'export PDF
+        if st.button("📄 " + t("export_pdf"), key="export_current_pdf", use_container_width=True):
+            with st.spinner(t("exporting_pdf")):
+                try:
+                    from assistant_regulation.planning.services.pdf_export_reportlab import ReportLabExportService
+                    from datetime import datetime
+
+                    service = ReportLabExportService()
+                    pdf_bytes = service.export_summary_to_pdf(summary)
+
+                    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                    filename = f"resume_{summary.regulation_code}_{timestamp}.pdf"
+
+                    st.download_button(
+                        label="⬇️ " + t("download_pdf"),
+                        data=pdf_bytes,
+                        file_name=filename,
+                        mime="application/pdf",
+                        key="download_current_pdf",
+                        use_container_width=True
+                    )
+                    st.success(t("export_success"))
+                except Exception as e:
+                    st.error(f"{t('export_error')}: {str(e)}")
+                    logger.exception("Erreur export PDF")
+
+    with col3:
         if st.button("Nouveau résumé", use_container_width=True):
             del st.session_state.current_summary
             if "summary_saved_path" in st.session_state:
@@ -474,9 +501,37 @@ def render_saved_summaries():
             st.markdown(summary_text, unsafe_allow_html=True)
             
             # Actions
-            col1, col2 = st.columns([4, 1])
-            
+            col1, col2, col3 = st.columns([3, 1, 1])
+
             with col2:
+                # Bouton d'export PDF
+                if st.button("📄 PDF", key=f"pdf_{summary.get('filename', '')}", help=t("export_pdf")):
+                    with st.spinner(t("exporting_pdf")):
+                        try:
+                            from assistant_regulation.planning.services.pdf_export_reportlab import ReportLabExportService
+                            from datetime import datetime
+
+                            service = ReportLabExportService()
+                            pdf_bytes = service.export_summary_to_pdf(summary)
+
+                            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                            regulation_code = summary.get('regulation_code', 'RXX')
+                            filename = f"resume_{regulation_code}_{timestamp}.pdf"
+
+                            st.download_button(
+                                label="⬇️ " + t("download_pdf"),
+                                data=pdf_bytes,
+                                file_name=filename,
+                                mime="application/pdf",
+                                key=f"download_{summary.get('filename', '')}",
+                                use_container_width=True
+                            )
+                            st.success(t("export_success"))
+                        except Exception as e:
+                            st.error(f"{t('export_error')}: {str(e)}")
+                            logger.exception("Erreur export PDF")
+
+            with col3:
                 if st.button("Supprimer", key=f"delete_{summary.get('filename', '')}", help="Supprimer ce résumé"):
                     try:
                         if os.path.exists(summary['filepath']):
