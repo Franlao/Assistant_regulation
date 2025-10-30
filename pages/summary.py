@@ -544,11 +544,7 @@ def render_saved_summaries():
 
 def main():
     """Page principale des résumés de réglementations"""
-    st.set_page_config(
-        page_title="Résumés Intelligents - Assistant Réglementaire",
-        layout="wide"
-    )
-    
+
     # Conteneur principal avec classe CSS
     st.markdown('<div class="summary-page-container">', unsafe_allow_html=True)
     

@@ -3,43 +3,43 @@ Page À propos - Présentation du projet Assistant Réglementaire
 """
 
 import streamlit as st
+from translations import t
 
 
 def main():
     """Page principale À propos"""
 
     # Titre principal
-    st.markdown("""
+    st.markdown(f"""
     <div style="text-align: center; padding: 2rem 0;">
-        <h1 style="color: #343a40; font-weight: 400; font-size: 2rem; margin: 0;">À propos de l'Assistant Réglementaire</h1>
-        <p style="color: #6c757d; font-size: 1rem; margin: 0.5rem 0 0 0;">Découvrez le projet et son fonctionnement</p>
+        <h1 style="color: #343a40; font-weight: 400; font-size: 2rem; margin: 0;">{t('about_page_title')}</h1>
+        <p style="color: #6c757d; font-size: 1rem; margin: 0.5rem 0 0 0;">{t('about_page_subtitle')}</p>
     </div>
     """, unsafe_allow_html=True)
 
     st.divider()
 
     # Section 1 : Description du projet
-    st.markdown("### Présentation du projet")
+    st.markdown(f"### {t('about_project_section_title')}")
 
-    st.markdown("""
-    L'**Assistant Réglementaire Automobile** est un système intelligent basé sur l'IA qui permet de :
+    st.markdown(f"""
+    {t('about_project_intro')}
 
-    - **Rechercher** facilement dans les réglementations UN/ECE automobiles
-    - **Analyser** le contenu des documents réglementaires (texte, images, tableaux)
-    - **Obtenir** des réponses précises et contextualisées à vos questions
-    - **Générer** des résumés automatiques de réglementations
+    - {t('about_project_search')}
+    - {t('about_project_analyze')}
+    - {t('about_project_answers')}
+    - {t('about_project_summaries')}
 
-    Le système utilise une architecture RAG (Retrieval-Augmented Generation) pour fournir des réponses
-    basées sur les documents officiels avec citations et références.
+    {t('about_project_rag_explanation')}
     """)
 
     st.divider()
 
     # Section 2 : Vidéo explicative
-    st.markdown("### Vidéo de présentation")
+    st.markdown(f"### {t('about_video_section_title')}")
 
-    st.markdown("""
-    Découvrez le fonctionnement de l'Assistant Réglementaire à travers cette vidéo explicative.
+    st.markdown(f"""
+    {t('about_video_description')}
     """)
 
     # Intégration YouTube
@@ -60,117 +60,117 @@ def main():
     st.divider()
 
     # Section 3 : Architecture technique
-    st.markdown("### Architecture technique")
+    st.markdown(f"### {t('about_architecture_section_title')}")
 
     col1, col2 = st.columns(2)
 
     with col1:
-        st.markdown("""
-        **Composants principaux**
+        st.markdown(f"""
+        **{t('about_main_components_title')}**
 
-        - **Interface** : Streamlit (Python)
-        - **Base de données** : ChromaDB (vectorielle)
-        - **LLM** : Ollama (local) ou Mistral AI (cloud)
-        - **Embeddings** : Sentence Transformers
-        - **Traitement** : PyMuPDF, Chonkie
+        - {t('about_component_interface')}
+        - {t('about_component_database')}
+        - {t('about_component_llm')}
+        - {t('about_component_embeddings')}
+        - {t('about_component_processing')}
         """)
 
     with col2:
-        st.markdown("""
-        **Architecture RAG**
+        st.markdown(f"""
+        **{t('about_rag_architecture_title')}**
 
-        1. **Ingestion** : Extraction et chunking des PDF
-        2. **Indexation** : Génération d'embeddings
-        3. **Recherche** : Récupération multimodale
-        4. **Génération** : Réponses contextualisées par LLM
-        5. **Validation** : Vérification de pertinence
+        1. {t('about_rag_ingestion')}
+        2. {t('about_rag_indexation')}
+        3. {t('about_rag_search')}
+        4. {t('about_rag_generation')}
+        5. {t('about_rag_validation')}
         """)
 
-    st.markdown("""
-    Le système est modulaire avec séparation claire entre :
-    - Services de récupération (texte, images, tableaux)
-    - Services de génération et validation
-    - Services de mémoire conversationnelle
-    - Services de routage intelligent
+    st.markdown(f"""
+    {t('about_architecture_modularity')}
+    - {t('about_architecture_retrieval')}
+    - {t('about_architecture_generation')}
+    - {t('about_architecture_memory')}
+    - {t('about_architecture_routing')}
     """)
 
     st.divider()
 
     # Section 4 : Guide d'utilisation
-    st.markdown("### Guide d'utilisation")
+    st.markdown(f"### {t('about_usage_guide_title')}")
 
-    with st.expander("📖 Comment poser une question", expanded=True):
-        st.markdown("""
-        **Étapes pour obtenir une réponse :**
+    with st.expander(t('about_how_to_ask_question_title'), expanded=True):
+        st.markdown(f"""
+        {t('about_how_to_ask_steps_title')}
 
-        1. Accédez à la page **Chat** depuis le menu
-        2. Tapez votre question sur une réglementation UN/ECE
-        3. Le système recherche dans les documents pertinents
-        4. Vous recevez une réponse avec citations et sources
+        1. {t('about_how_to_ask_step1')}
+        2. {t('about_how_to_ask_step2')}
+        3. {t('about_how_to_ask_step3')}
+        4. {t('about_how_to_ask_step4')}
 
-        **Exemples de questions :**
-        - "Quelles sont les exigences du R46 sur les rétroviseurs ?"
-        - "Que dit le règlement R100 sur les batteries des véhicules électriques ?"
-        - "Quels sont les tests requis pour la protection des passagers ?"
+        {t('about_question_examples_title')}
+        - {t('about_question_example1')}
+        - {t('about_question_example2')}
+        - {t('about_question_example3')}
         """)
 
-    with st.expander("⚙️ Configuration du système"):
-        st.markdown("""
-        **Paramètres disponibles** (page Configuration) :
+    with st.expander(t('about_configuration_section_title')):
+        st.markdown(f"""
+        {t('about_configuration_params_title')}
 
-        - **LLM Provider** : Choisir entre Ollama (local) ou Mistral AI
-        - **Modèle** : Sélectionner le modèle de langue
-        - **Options RAG** : Activer/désactiver images et tableaux
-        - **Mémoire** : Configurer la taille de la fenêtre conversationnelle
-        - **Seuils** : Ajuster les seuils de confiance
+        - {t('about_configuration_llm_provider')}
+        - {t('about_configuration_model')}
+        - {t('about_configuration_rag_options')}
+        - {t('about_configuration_memory')}
+        - {t('about_configuration_thresholds')}
         """)
 
-    with st.expander("📊 Génération de résumés"):
-        st.markdown("""
-        **Pour générer un résumé de réglementation :**
+    with st.expander(t('about_summary_generation_title')):
+        st.markdown(f"""
+        {t('about_summary_steps_title')}
 
-        1. Accédez à la page **Summary**
-        2. Sélectionnez une réglementation
-        3. Choisissez les sections à inclure
-        4. Configurez les options de génération
-        5. Cliquez sur "Générer le Résumé"
-        6. Exportez au format souhaité (PDF, Word, Markdown)
+        1. {t('about_summary_step1')}
+        2. {t('about_summary_step2')}
+        3. {t('about_summary_step3')}
+        4. {t('about_summary_step4')}
+        5. {t('about_summary_step5')}
+        6. {t('about_summary_step6')}
         """)
 
-    with st.expander("🗃️ Gestion de la base de données (Admin)"):
-        st.markdown("""
-        **Fonctionnalités administrateur :**
+    with st.expander(t('about_database_management_title')):
+        st.markdown(f"""
+        {t('about_database_features_title')}
 
-        - **Ingestion** : Ajouter de nouveaux documents PDF
-        - **Recherche** : Explorer le contenu de la base
-        - **Nettoyage** : Supprimer des réglementations
-        - **Statistiques** : Visualiser l'état de la base
-        - **Utilisateurs** : Gérer les comptes et les rôles
+        - {t('about_database_ingestion')}
+        - {t('about_database_search')}
+        - {t('about_database_cleanup')}
+        - {t('about_database_statistics')}
+        - {t('about_database_users')}
         """)
 
     st.divider()
 
     # Section 5 : Informations complémentaires
-    st.markdown("### Informations complémentaires")
+    st.markdown(f"### {t('about_additional_info_title')}")
 
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        st.metric("Version", "1.0", help="Version actuelle du système")
+        st.metric(t('about_version_label'), "1.0", help=t('about_version_help'))
 
     with col2:
-        st.metric("Architecture", "RAG", help="Retrieval-Augmented Generation")
+        st.metric(t('about_architecture_label'), "RAG", help=t('about_architecture_help'))
 
     with col3:
-        st.metric("Modalités", "3", help="Texte, Images, Tableaux")
+        st.metric(t('about_modalities_label'), "3", help=t('about_modalities_help'))
 
     st.markdown("<br>", unsafe_allow_html=True)
 
     # Footer
-    st.info("""
-    **Besoin d'aide ?**
+    st.info(f"""
+    {t('about_need_help_title')}
 
-    Pour toute question ou assistance, contactez l'administrateur du système.
+    {t('about_need_help_message')}
     """)
 
 

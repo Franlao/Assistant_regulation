@@ -1062,28 +1062,32 @@ def main():
     st.divider()
     
     # Navigation par onglets
-    tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
         t('ingestion'),
         t('summary'),
         t('search'),
         t('list'),
-        t('cleanup')
+        t('cleanup'),
+        t('users')
     ])
-    
+
     with tab1:
         render_pdf_ingestion()
-    
+
     with tab2:
         render_database_summary()
-    
+
     with tab3:
         render_regulation_search()
-    
+
     with tab4:
         render_regulations_list()
-    
+
     with tab5:
         render_database_cleanup()
+
+    with tab6:
+        render_user_management()
     
     # Footer d'aide
     st.divider()
@@ -1114,10 +1118,9 @@ def main():
 
 def render_user_management():
     """Affiche l'interface de gestion des utilisateurs (Admin uniquement)"""
-    st.markdown("""
-    <div style="padding: 1rem 0;">
-        <h2 style="color: #343a40; font-weight: 360; font-size: 1.5rem; margin: 0;">Gestion des Utilisateurs</h2>
-        <p style="color: #6c757d; font-size: 0.9rem;">Créer, modifier et supprimer des comptes utilisateurs</p>
+    st.markdown(f"""
+    <div style="padding: 2rem 0;">
+        <h2 style="color: #343a40; font-weight: 360; font-size: 2rem; margin: 0;">{t('user_management')}</h2>
     </div>
     """, unsafe_allow_html=True)
 
@@ -1137,7 +1140,7 @@ def render_user_management():
                                    help="Admin: accès complet | User: accès limité")
             st.markdown("<br>", unsafe_allow_html=True)
 
-        submitted = st.form_submit_button("Créer l'utilisateur", type="primary", use_container_width=True)
+        submitted = st.form_submit_button("Créer l'utilisateur", use_container_width=True)
 
         if submitted:
             if new_username and new_password:
@@ -1260,7 +1263,7 @@ def render_user_management():
                                        placeholder="Minimum 6 caractères")
 
             reset_submitted = st.form_submit_button("Réinitialiser le mot de passe",
-                                                   type="primary", use_container_width=True)
+                                                   use_container_width=True)
 
             if reset_submitted:
                 if user_to_reset and new_pwd:
